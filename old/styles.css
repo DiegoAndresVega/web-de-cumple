@@ -1,0 +1,384 @@
+/* FinkaFest Vol. IV — riso/rave folk on cream */
+
+:root {
+  --cream: #f0e7d4;
+  --cream-2: #e8dec5;
+  --cream-3: #d9cdaf;
+  --charcoal: #1a1815;
+  --charcoal-2: #2b2823;
+  --ember: #c63d2f;
+  --moss: #5a6b3a;
+  --blue-night: #1f3a5f;
+  --orange: #e6622a;
+  --tape: rgba(230, 220, 180, 0.72);
+
+  --accent-a: var(--ember);
+  --accent-b: var(--moss);
+  --accent-c: var(--blue-night);
+
+  --display: "Bungee", "Archivo Black", system-ui, sans-serif;
+  --sub: "Archivo Black", system-ui, sans-serif;
+  --body: "Space Mono", ui-monospace, monospace;
+  --hand: "Caveat", cursive;
+
+  --chaos: 6;
+  --rot-1: calc((var(--chaos) - 5) * 0.25deg);
+  --rot-2: calc((var(--chaos) - 5) * -0.35deg);
+  --rot-3: calc((var(--chaos) - 5) * 0.5deg);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--cream);
+  color: var(--charcoal);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+body {
+  position: relative;
+}
+
+/* paper grain — always on */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.08 0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* faint vignette */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(26,24,21,0.18) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+#app {
+  position: relative;
+  z-index: 3;
+}
+
+/* Typography */
+h1, h2, h3, h4 { margin: 0; font-weight: 400; }
+
+.display {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.sub {
+  font-family: var(--sub);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+}
+
+.hand {
+  font-family: var(--hand);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.mono {
+  font-family: var(--body);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+/* Stamps & tape */
+.stamp {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 1.5px solid currentColor;
+  font-family: var(--body);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transform: rotate(var(--rot-1));
+}
+
+.tape {
+  position: absolute;
+  width: 90px;
+  height: 22px;
+  background: var(--tape);
+  box-shadow: 0 1px 0 rgba(26,24,21,0.08);
+  pointer-events: none;
+}
+.tape::before, .tape::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 6px;
+  background: repeating-linear-gradient(135deg,
+    rgba(255,255,255,0.4) 0 2px,
+    transparent 2px 4px);
+}
+.tape::before { left: 0; }
+.tape::after { right: 0; }
+
+/* Riso overprint helper: use as wrapper, .riso > * { ... } with mix-blend-mode multiply */
+.riso { position: relative; }
+.riso-shadow {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Section base */
+section {
+  position: relative;
+  padding: 80px 24px;
+  scroll-margin-top: 80px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Section markers (number + title overhead) */
+.section-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--body);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--charcoal);
+  margin-bottom: 18px;
+}
+.section-tag::before {
+  content: "";
+  width: 30px;
+  height: 2px;
+  background: var(--accent-a);
+}
+.section-tag .num {
+  font-family: var(--sub);
+  color: var(--accent-a);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--charcoal);
+  color: var(--cream);
+  border: 2.5px solid var(--charcoal);
+  font-family: var(--sub);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--accent-a);
+  transition: transform 0.08s, box-shadow 0.08s;
+  border-radius: 0;
+}
+.btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--accent-a); }
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--accent-a); }
+
+.btn.ghost {
+  background: transparent;
+  color: var(--charcoal);
+  box-shadow: 4px 4px 0 var(--accent-b);
+}
+.btn.ghost:hover { box-shadow: 6px 6px 0 var(--accent-b); }
+
+.btn.sm { padding: 9px 14px; font-size: 11px; box-shadow: 3px 3px 0 var(--accent-a); }
+.btn.sm:hover { box-shadow: 5px 5px 0 var(--accent-a); }
+
+/* Inputs */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-family: var(--body);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--charcoal-2);
+}
+.field label .opt { color: rgba(26,24,21,0.45); text-transform: none; letter-spacing: 0; font-style: italic; }
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(255,253,247,0.6);
+  border: 2px solid var(--charcoal);
+  color: var(--charcoal);
+  font-family: var(--body);
+  font-size: 14px;
+  border-radius: 0;
+  outline: none;
+}
+.input:focus, .select:focus, .textarea:focus {
+  background: rgba(255,253,247,0.9);
+  box-shadow: 3px 3px 0 var(--accent-a);
+  transform: translate(-1px, -1px);
+}
+
+.select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--charcoal) 50%), linear-gradient(135deg, var(--charcoal) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
+
+.textarea { resize: vertical; min-height: 80px; }
+
+/* Chip-style multi-select */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255,253,247,0.4);
+  border: 1.5px solid var(--charcoal);
+  font-family: var(--body);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.08s;
+}
+.chip:hover { transform: translate(-1px, -1px); }
+.chip.on {
+  background: var(--charcoal);
+  color: var(--cream);
+}
+
+/* Card */
+.card {
+  background: var(--cream-2);
+  border: 2.5px solid var(--charcoal);
+  padding: 22px;
+  position: relative;
+}
+
+/* Wavy divider */
+.wavy {
+  position: relative;
+  height: 12px;
+  width: 100%;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 12' preserveAspectRatio='none'><path d='M0 6 Q 10 0 20 6 T 40 6 T 60 6 T 80 6' fill='none' stroke='%231a1815' stroke-width='1.5'/></svg>");
+  background-repeat: repeat-x;
+}
+
+/* Accent layouts */
+.bg-charcoal { background: var(--charcoal); color: var(--cream); }
+.bg-ember { background: var(--ember); color: var(--cream); }
+.bg-moss { background: var(--moss); color: var(--cream); }
+.bg-blue { background: var(--blue-night); color: var(--cream); }
+
+.text-ember { color: var(--ember); }
+.text-moss { color: var(--moss); }
+.text-blue { color: var(--blue-night); }
+
+/* Utility */
+.flex { display: flex; }
+.grid { display: grid; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.gap-6 { gap: 24px; }
+.gap-8 { gap: 32px; }
+.center { align-items: center; }
+.between { justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.col { flex-direction: column; }
+
+/* Responsive */
+@media (max-width: 760px) {
+  section { padding: 56px 18px; }
+  .display { letter-spacing: -0.02em; }
+}
+
+/* Riso misregistration text effect (used on big titles)
+   Now uses three real DOM children so each layer is independently editable. */
+.riso-text {
+  position: relative;
+  color: var(--charcoal);
+  display: inline-block;
+}
+.riso-text > .riso-back-a,
+.riso-text > .riso-back-b {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+  mix-blend-mode: multiply;
+  white-space: pre;
+}
+.riso-text > .riso-back-a {
+  color: var(--accent-a);
+  transform: translate(calc(2px + var(--rot-3, 0px)), 1px);
+  opacity: 0.75;
+}
+.riso-text > .riso-back-b {
+  color: var(--accent-b);
+  transform: translate(-2px, -1px);
+  opacity: 0.6;
+}
+.riso-text > .riso-front {
+  position: relative;
+  z-index: 1;
+}
+
+/* "no scroll" when mobile menu open */
+body.menu-open { overflow: hidden; }
+
+/* Scroll snap-ish reveal */
+.scribble {
+  display: inline-block;
+  position: relative;
+}
+.scribble::after {
+  content: "";
+  position: absolute;
+  left: -4px; right: -4px;
+  bottom: -2px;
+  height: 8px;
+  background: var(--accent-a);
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  z-index: -1;
+  transform: skewX(-6deg) rotate(-1deg);
+}
+
+/* Halftone dot pattern utility */
+.halftone {
+  background-image: radial-gradient(currentColor 1.2px, transparent 1.4px);
+  background-size: 8px 8px;
+  opacity: 0.18;
+}
+
+/* Sticker */
+.sticker {
+  display: inline-block;
+  padding: 8px 14px;
+  font-family: var(--sub);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 2px solid var(--charcoal);
+  background: var(--cream);
+  transform: rotate(var(--rot-1));
+}

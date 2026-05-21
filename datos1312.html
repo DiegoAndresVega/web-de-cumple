@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FINKAFEST · Confirmaciones</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 28px 24px;
+      background: #0a0a0a; color: #f4f4f0;
+      font-family: "Space Mono", monospace; font-size: 13px; line-height: 1.5;
+    }
+    h1 { font-family: "Archivo Black", sans-serif; color: #cbdf5a; font-size: 24px; margin: 0 0 4px; text-transform: uppercase; }
+    .meta { color: #555; font-size: 11px; margin-bottom: 28px; letter-spacing: 0.1em; }
+
+    .topbar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+
+    /* Stats */
+    .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px; }
+    .stat { background: #111; border: 2px solid #cbdf5a; padding: 12px 18px; min-width: 100px; }
+    .stat-num { font-family: "Archivo Black", sans-serif; font-size: 32px; color: #cbdf5a; line-height: 1; }
+    .stat-lbl { font-size: 10px; color: #888; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 4px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-block; padding: 10px 18px;
+      background: #cbdf5a; color: #000;
+      font-family: "Archivo Black", sans-serif; font-size: 12px;
+      border: none; cursor: pointer; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .btn:hover { background: #dff070; }
+    .btn.ghost { background: transparent; color: #cbdf5a; border: 2px solid #cbdf5a; }
+    .btn.ghost:hover { background: #cbdf5a; color: #000; }
+    .btn.danger { background: #ff4444; color: #fff; border: none; }
+    .btn.danger:hover { background: #ff6666; }
+    .btn.sm { padding: 4px 9px; font-size: 10px; }
+    .btn.exit { background: #333; color: #ccc; }
+    .btn.exit:hover { background: #444; }
+
+    .error { color: #ff6b6b; font-size: 11px; margin-top: 8px; }
+
+    /* Grid */
+    .grid-title {
+      font-family: "Archivo Black", sans-serif; font-size: 12px; letter-spacing: 0.12em;
+      color: #cbdf5a; text-transform: uppercase;
+      border-bottom: 2px solid #cbdf5a; padding-bottom: 8px; margin-bottom: 0;
+    }
+    .wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 1000px; }
+    thead th {
+      background: #1a1a1a; color: #cbdf5a;
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 10px 12px; text-align: left; white-space: nowrap;
+      border-bottom: 2px solid #cbdf5a; border-right: 1px solid #222;
+    }
+    thead th:last-child { border-right: none; }
+    tbody tr { border-bottom: 1px solid #1e1e1e; transition: background .1s; }
+    tbody tr:hover { background: #111; }
+    tbody tr:nth-child(even) { background: #0d0d0d; }
+    tbody tr:nth-child(even):hover { background: #111; }
+    td { padding: 10px 12px; vertical-align: middle; border-right: 1px solid #1a1a1a; }
+    td:last-child { border-right: none; }
+    .dim { color: #444; }
+    .bold { font-weight: 700; color: #fff; }
+    .pill {
+      display: inline-block; padding: 2px 7px; font-size: 10px;
+      margin: 2px 2px 0 0; white-space: nowrap; border: 1px solid #333; color: #aaa;
+    }
+    .pill.hi { border-color: #cbdf5a; color: #cbdf5a; }
+    .pill.red { border-color: #ff6b6b; color: #ff6b6b; }
+    .empty-row td, .loading-row td { text-align: center; color: #444; padding: 48px; border-right: none; font-size: 14px; }
+
+    /* Modal overlay */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; padding: 16px;
+    }
+    .modal {
+      background: #111; border: 2px solid #cbdf5a;
+      padding: 28px; width: 100%; max-width: 420px;
+    }
+    .modal.wide { max-width: 560px; max-height: 90vh; overflow-y: auto; }
+    .modal h3 { font-family: "Archivo Black", sans-serif; color: #cbdf5a; font-size: 20px; margin: 0 0 18px; }
+    .modal p { color: #888; font-size: 12px; margin: 0 0 18px; line-height: 1.6; }
+
+    /* Form */
+    .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+    .field label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #888; }
+    input, select, textarea {
+      background: #1a1a1a; border: 2px solid #333; color: #f4f4f0;
+      font-family: "Space Mono", monospace; font-size: 13px;
+      padding: 10px 12px; width: 100%; border-radius: 0; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #cbdf5a; }
+    textarea { resize: vertical; min-height: 70px; }
+    select option { background: #1a1a1a; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+    .chip {
+      padding: 5px 10px; border: 1px solid #333; font-size: 11px;
+      cursor: pointer; color: #666; background: transparent;
+      font-family: "Space Mono", monospace; letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .chip.on { border-color: #cbdf5a; color: #cbdf5a; }
+    .modal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 8px; flex-wrap: wrap; }
+
+    @media (max-width: 560px) { .modal-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyB7jccSMkF4T1b-8Zikl-GmsVuQUPKOIek",
+      authDomain: "finkafest.firebaseapp.com",
+      databaseURL: "https://finkafest-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "finkafest",
+      storageBucket: "finkafest.firebasestorage.app",
+      messagingSenderId: "183200972301",
+      appId: "1:183200972301:web:e315875d49a96762849f44"
+    });
+  </script>
+
+  <script>
+    const { useState, useEffect } = React;
+    const h = React.createElement;
+    const db = () => firebase.database();
+
+    async function hashPw(pw) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw + "_fkiv26"));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+    }
+
+    const TRANSPORTES = {
+      "coche-propio": "Coche (con sitio)", "coche-lleno": "Coche (sin sitio)",
+      "furgo": "Furgo", "otro-coche": "Va con alguien", "necesito": "Necesita sitio",
+    };
+    const DORMIR = { "tienda":"Tienda","furgo":"Furgo","dia":"Solo dia","necesito":"Necesita lugar" };
+
+    function fmt(ts) {
+      if (!ts) return "-";
+      const d = new Date(ts);
+      return d.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit"}) + " " +
+             d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
+    }
+    function pill(txt, cls) {
+      return h("span",{key:txt,className:"pill"+(cls?" "+cls:"")} ,txt);
+    }
+
+    /* ── PASSWORD MODAL ── */
+    function PwModal({ onAuth, onClose }) {
+      const [pw, setPw]   = useState("");
+      const [err, setErr] = useState("");
+
+      const submit = async (ev) => {
+        ev.preventDefault();
+        setErr("");
+        const hash = await hashPw(pw);
+        const snap = await db().ref("_admin/hash").once("value");
+        if (!snap.val()) {
+          // Primera vez: crear contraseña
+          if (pw.length < 4) return setErr("Minimo 4 caracteres.");
+          await db().ref("_admin/hash").set(hash);
+          onAuth();
+        } else if (snap.val() === hash) {
+          onAuth();
+        } else {
+          setErr("Contraseña incorrecta.");
+        }
+      };
+
+      return h("div",{className:"overlay",onClick:onClose},
+        h("div",{className:"modal",onClick:ev=>ev.stopPropagation()},
+          h("h3",null,"Acceso edicion"),
+          h("p",null,"Introduce la contraseña para poder editar o borrar filas."),
+          h("form",{onSubmit:submit},
+            h("div",{className:"field"},
+              h("label",null,"Contraseña"),
+              h("input",{type:"password",value:pw,onChange:ev=>setPw(ev.target.value),autoFocus:true,placeholder:"••••••"})
+            ),
+            err && h("div",{className:"error"},err),
+            h("div",{style:{display:"flex",gap:8,marginTop:16}},
+              h("button",{type:"button",className:"btn ghost",onClick:onClose},"CANCELAR"),
+              h("button",{type:"submit",className:"btn"},"ENTRAR →"),
+            )
+          )
+        )
+      );
+    }
+
+    /* ── EDIT MODAL ── */
+    function EditModal({ row, onSave, onClose }) {
+      const [f, setF] = useState({...row});
+      const set = (k,v) => setF(s=>({...s,[k]:v}));
+      const toggleDia = d => setF(s=>({...s,dias:{...s.dias,[d]:!s.dias?.[d]}}));
+      const toggleArr = (k,v) => setF(s=>({
+        ...s,[k]:(s[k]||[]).includes(v)?s[k].filter(x=>x!==v):[...(s[k]||[]),v]
+      }));
+
+      return h("div",{className:"overlay",onClick:onClose},
+        h("div",{className:"modal wide",onClick:ev=>ev.stopPropagation()},
+          h("h3",null,"Editar respuesta"),
+          h("div",{className:"modal-grid"},
+            h("div",{className:"field"},h("label",null,"Nombre"),h("input",{value:f.nombre||"",onChange:ev=>set("nombre",ev.target.value)})),
+            h("div",{className:"field"},h("label",null,"Contacto"),h("input",{value:f.contacto||"",onChange:ev=>set("contacto",ev.target.value)})),
+          ),
+          h("div",{className:"field"},
+            h("label",null,"Dias"),
+            h("div",{className:"chips"},
+              [["vie","VIE 19"],["sab","SAB 20"],["dom","DOM 21"]].map(([k,l])=>
+                h("span",{key:k,className:"chip"+(f.dias?.[k]?" on":""),onClick:()=>toggleDia(k)},l)
+              )
+            )
+          ),
+          h("div",{className:"modal-grid"},
+            h("div",{className:"field"},
+              h("label",null,"Transporte"),
+              h("select",{value:f.transporte||"",onChange:ev=>set("transporte",ev.target.value)},
+                Object.entries(TRANSPORTES).map(([k,v])=>h("option",{key:k,value:k},v))
+              )
+            ),
+            h("div",{className:"field"},
+              h("label",null,"Duerme"),
+              h("select",{value:f.dormir||"",onChange:ev=>set("dormir",ev.target.value)},
+                Object.entries(DORMIR).map(([k,v])=>h("option",{key:k,value:k},v))
+              )
+            ),
+          ),
+          h("div",{className:"field"},
+            h("label",null,"Dieta"),
+            h("div",{className:"chips"},
+              ["VEGETARIANA","VEGANA","SIN GLUTEN"].map(d=>
+                h("span",{key:d,className:"chip"+((f.dieta||[]).includes(d)?" on":""),onClick:()=>toggleArr("dieta",d)},d)
+              )
+            )
+          ),
+          h("div",{className:"field"},h("label",null,"Alergias"),h("input",{value:f.alergias||"",onChange:ev=>set("alergias",ev.target.value)})),
+          h("div",{className:"field"},
+            h("label",null,"Aporta"),
+            h("div",{className:"chips"},
+              ["cocino","taller","juego","dj","instrumento","sonido","otro"].map(a=>
+                h("span",{key:a,className:"chip"+((f.aportar||[]).includes(a)?" on":""),onClick:()=>toggleArr("aportar",a)},a)
+              )
+            )
+          ),
+          h("div",{className:"field"},h("label",null,"Notas"),h("textarea",{value:f.notas||"",onChange:ev=>set("notas",ev.target.value)})),
+          h("div",{className:"modal-footer"},
+            h("button",{className:"btn ghost",onClick:onClose},"CANCELAR"),
+            h("button",{className:"btn",onClick:()=>onSave(f)},"GUARDAR →"),
+          )
+        )
+      );
+    }
+
+    /* ── MAIN ── */
+    function App() {
+      const [rows, setRows]       = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [canEdit, setCanEdit] = useState(false);
+      const [showPw, setShowPw]   = useState(false);
+      const [editing, setEditing] = useState(null);
+      const [confirmDel, setConfirmDel] = useState(null);
+
+      useEffect(() => {
+        const ref = db().ref("confirmaciones");
+        ref.on("value", snap => {
+          const val = snap.val();
+          const arr = val ? Object.entries(val).map(([k,v])=>({_key:k,...v})) : [];
+          arr.sort((a,b)=>(b.ts||0)-(a.ts||0));
+          setRows(arr); setLoading(false);
+        });
+        return () => db().ref("confirmaciones").off();
+      }, []);
+
+      const saveEdit = (data) => {
+        const {_key,...rest} = data;
+        db().ref("confirmaciones/"+_key).update(rest);
+        setEditing(null);
+      };
+      const deleteRow = (key) => {
+        db().ref("confirmaciones/"+key).remove();
+        setConfirmDel(null);
+      };
+
+      const vie      = rows.filter(r=>r.dias?.vie).length;
+      const sab      = rows.filter(r=>r.dias?.sab).length;
+      const dom      = rows.filter(r=>r.dias?.dom).length;
+      const sinViaje = rows.filter(r=>r.transporte==="necesito").length;
+      const dieta    = rows.filter(r=>r.dieta?.length>0||r.alergias).length;
+
+      const cols = ["Fecha","Nombre","Contacto","Dias","Transporte","Duerme","Dieta / Alergias","Aporta","Notas",...(canEdit?[""]:[])] ;
+
+      return h("div", null,
+
+        h("div",{className:"topbar"},
+          h("div",null,
+            h("h1",null,"Finkafest IV — Confirmaciones"),
+            h("div",{className:"meta"},"finkafest.es/datos1312 · privado"),
+          ),
+          canEdit
+            ? h("button",{className:"btn exit",onClick:()=>{setCanEdit(false);setConfirmDel(null);}},"SALIR DE EDICION")
+            : h("button",{className:"btn ghost",onClick:()=>setShowPw(true)},"EDITAR"),
+        ),
+
+        h("div",{className:"stats"},
+          [[rows.length,"Total"],[vie,"Vie 19"],[sab,"Sab 20"],[dom,"Dom 21"],[sinViaje,"Sin viaje"],[dieta,"Dieta especial"]].map(([n,lbl])=>
+            h("div",{className:"stat",key:lbl},
+              h("div",{className:"stat-num"},loading?"—":n),
+              h("div",{className:"stat-lbl"},lbl)
+            )
+          )
+        ),
+
+        h("div",{className:"grid-title"},
+          `Respuestas individuales${!loading?" · "+rows.length:""}`
+          + (canEdit?" · MODO EDICION":"")
+        ),
+        h("div",{className:"wrap"},
+          h("table",null,
+            h("thead",null,h("tr",null,cols.map(c=>h("th",{key:c},c)))),
+            h("tbody",null,
+              loading
+                ? h("tr",{className:"loading-row"},h("td",{colSpan:cols.length},"Conectando con Firebase..."))
+                : rows.length===0
+                  ? h("tr",{className:"empty-row"},h("td",{colSpan:cols.length},"Sin confirmaciones aun. Las respuestas apareceran aqui en tiempo real."))
+                  : rows.map(r=>
+                      h("tr",{key:r._key},
+                        h("td",{className:"dim",style:{whiteSpace:"nowrap",fontSize:11}},fmt(r.ts)),
+                        h("td",{className:"bold"},r.nombre||h("span",{className:"dim"},"—")),
+                        h("td",null,r.contacto||h("span",{className:"dim"},"—")),
+                        h("td",null,["vie","sab","dom"].filter(d=>r.dias?.[d]).map(d=>pill(d.toUpperCase(),"hi"))),
+                        h("td",{style:{whiteSpace:"nowrap"}},
+                          r.transporte==="necesito"?h("span",{className:"pill red"},"NECESITA SITIO"):TRANSPORTES[r.transporte]||r.transporte||"—"
+                        ),
+                        h("td",null,DORMIR[r.dormir]||r.dormir||"—"),
+                        h("td",null,
+                          (r.dieta||[]).map(d=>pill(d)),
+                          r.alergias?h("div",{style:{marginTop:4,fontSize:12}},r.alergias):null,
+                          (!r.dieta?.length&&!r.alergias)?h("span",{className:"dim"},"—"):null
+                        ),
+                        h("td",null,(r.aportar||[]).length?(r.aportar||[]).map(a=>pill(a)):h("span",{className:"dim"},"—")),
+                        h("td",{style:{maxWidth:200,fontSize:12,color:"#ccc"}},r.notas||h("span",{className:"dim"},"—")),
+                        canEdit && h("td",{style:{whiteSpace:"nowrap"}},
+                          confirmDel===r._key
+                            ? h("span",null,
+                                h("button",{className:"btn danger sm",onClick:()=>deleteRow(r._key)},"CONFIRMAR"),
+                                h("button",{className:"btn ghost sm",style:{marginLeft:4},onClick:()=>setConfirmDel(null)},"NO"),
+                              )
+                            : h("span",null,
+                                h("button",{className:"btn ghost sm",onClick:()=>setEditing(r)},"EDITAR"),
+                                h("button",{className:"btn danger sm",style:{marginLeft:4},onClick:()=>setConfirmDel(r._key)},"BORRAR"),
+                              )
+                        ),
+                      )
+                    )
+            )
+          )
+        ),
+
+        showPw && h(PwModal,{
+          onAuth: () => { setCanEdit(true); setShowPw(false); },
+          onClose: () => setShowPw(false),
+        }),
+        editing && h(EditModal,{ row:editing, onSave:saveEdit, onClose:()=>setEditing(null) }),
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("app")).render(h(App));
+  </script>
+</body>
+</html>

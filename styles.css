@@ -1,0 +1,277 @@
+/* FINKAFEST · PUNK · zebra verde sobre negro */
+
+:root {
+  --bg: #000000;
+  --ink: #f4f4f0;
+  --ink-dim: #9a9a92;
+  --green: #cbdf5a;
+  --green-2: #2bd610;
+  --green-dim: #1a8a0a;
+  --red: #ff2a2a;
+  --yellow: #ffe600;
+
+  --display: "Anton", "Archivo Black", Impact, system-ui, sans-serif;
+  --sub: "Archivo Black", Impact, system-ui, sans-serif;
+  --body: "Space Mono", "DM Mono", ui-monospace, monospace;
+  --stencil: "Bungee", "Anton", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.45;
+  overflow-x: hidden;
+}
+
+/* Zebra punk: two stripe columns on left and right, black center */
+html {
+  background-color: #000;
+  background-image:
+    repeating-linear-gradient(-45deg, #000 0 22px, var(--green) 22px 44px),
+    repeating-linear-gradient(-45deg, #000 0 22px, var(--green) 22px 44px);
+  background-size: 90px 100%, 90px 100%;
+  background-position: left top, right top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+body { background: transparent; }
+
+/* fotocopia / grano muy sutil */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#app {
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Type ───────────────────────────────────────────── */
+h1, h2, h3, h4 { margin: 0; font-weight: 400; }
+
+.display {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  line-height: 0.88;
+  text-transform: uppercase;
+}
+
+.sub {
+  font-family: var(--sub);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.mono {
+  font-family: var(--body);
+  letter-spacing: 0.03em;
+}
+
+a { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+a:hover { color: var(--ink); background: var(--green); }
+
+/* ── Layout ─────────────────────────────────────────── */
+section {
+  position: relative;
+  padding: 56px 0;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+  position: relative;
+}
+
+/* Solid panels sit on top of zebra */
+.panel-black {
+  background: #000;
+  color: var(--ink);
+  border: 3px solid var(--ink);
+}
+.panel-green {
+  background: var(--green);
+  color: #000;
+  border: 3px solid #000;
+}
+.panel-ink {
+  background: var(--ink);
+  color: #000;
+  border: 3px solid #000;
+}
+
+/* ── Buttons ────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--green);
+  color: #000;
+  border: 3px solid #000;
+  outline: 3px solid var(--green);
+  font-family: var(--sub);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: 0;
+  transition: transform .08s;
+}
+.btn:hover { transform: translate(-2px, -2px); background: var(--ink); color: #000; }
+.btn:active { transform: translate(1px, 1px); }
+
+.btn.danger { background: var(--red); color: var(--ink); outline-color: var(--red); }
+.btn.ghost { background: transparent; color: var(--green); outline-color: transparent; border-color: var(--green); }
+.btn.ghost:hover { background: var(--green); color: #000; }
+
+/* ── Inputs ─────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-family: var(--body);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #000;
+}
+.field label .opt { color: rgba(0,0,0,0.5); text-transform: none; letter-spacing: 0; font-style: italic; }
+
+.input, .select, .textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: #fff;
+  border: 3px solid #000;
+  color: #000;
+  font-family: var(--body);
+  font-size: 14px;
+  border-radius: 0;
+  outline: none;
+}
+.input:focus, .select:focus, .textarea:focus {
+  background: var(--green);
+  color: #000;
+}
+.select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #000 50%), linear-gradient(135deg, #000 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  background-color: #fff;
+  padding-right: 36px;
+}
+.select:focus { background-color: var(--green); }
+.textarea { resize: vertical; min-height: 80px; }
+
+/* Chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 2.5px solid #000;
+  font-family: var(--body);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #000;
+  cursor: pointer;
+  user-select: none;
+}
+.chip:hover { background: var(--green); }
+.chip.on { background: #000; color: var(--green); }
+
+/* ── Tape / sticker ─────────────────────────────────── */
+.tape {
+  position: absolute;
+  padding: 4px 12px;
+  background: var(--yellow);
+  color: #000;
+  font-family: var(--sub);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 2px solid #000;
+}
+
+/* Section eyebrow */
+.eyebrow {
+  display: inline-block;
+  font-family: var(--body);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: var(--green);
+  color: #000;
+  padding: 4px 10px;
+  border: 2px solid #000;
+  margin-bottom: 16px;
+}
+
+/* Strike */
+.strike {
+  text-decoration: line-through;
+  text-decoration-thickness: 4px;
+  text-decoration-color: var(--red);
+}
+
+/* Marker highlight */
+.mark {
+  background: var(--green);
+  color: #000;
+  padding: 0 4px;
+}
+
+/* Marquee */
+.marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  background: var(--green);
+  color: #000;
+  border-top: 3px solid #000;
+  border-bottom: 3px solid #000;
+  padding: 10px 0;
+  font-family: var(--display);
+  font-size: 26px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.marquee__track {
+  display: inline-block;
+  padding-left: 100%;
+  animation: marquee 40s linear infinite;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.marquee__track > span { padding: 0 26px; }
+.marquee__track > span::before { content: "✕ "; color: #000; }
+
+/* mobile */
+@media (max-width: 760px) {
+  section { padding: 44px 0; }
+  html {
+    background-image:
+      repeating-linear-gradient(-45deg, #000 0 14px, var(--green) 14px 28px),
+      repeating-linear-gradient(-45deg, #000 0 14px, var(--green) 14px 28px);
+    background-size: 40px 100%, 40px 100%;
+  }
+}
