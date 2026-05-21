@@ -94,7 +94,7 @@ function Confirmar() {
               </select>
             </div>
             <p className="mono" style={{ fontSize: 11, marginTop: 10, fontWeight: 700, letterSpacing: "0.08em" }}>
-              ↳ <a href="#finkakar" onClick={(e) => { e.preventDefault(); document.querySelector("#finkakar")?.scrollIntoView({ behavior: "smooth" }); }}>PASA POR FINKAKAR</a> PARA PUBLICAR O PEDIR VIAJE
+              ↳ <a href="#finkakar" onClick={(e) => { e.preventDefault(); document.querySelector("#finkakar")?.scrollIntoView({ behavior: "smooth" }); }} style={{ color: "var(--green-2)" }}>PASA POR FINKAKAR</a> PARA PUBLICAR O PEDIR VIAJE
             </p>
           </FRow>
 

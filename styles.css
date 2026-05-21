@@ -5,7 +5,7 @@
   --ink: #f4f4f0;
   --ink-dim: #9a9a92;
   --green: #cbdf5a;
-  --green-2: #2bd610;
+  --green-2: #23a510dc;
   --green-dim: #1a8a0a;
   --red: #ff2a2a;
   --yellow: #ffe600;
@@ -265,6 +265,43 @@ section {
 .marquee__track > span { padding: 0 26px; }
 .marquee__track > span::before { content: "✕ "; color: #000; }
 
+/* ── Gallery layouts ─────────────────────────────── */
+.hero-row {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+.hero-row__text {
+  flex-shrink: 0;
+  width: clamp(280px, 38vw, 520px);
+}
+.hero-row__gallery {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-self: flex-start;
+}
+
+.footer-row {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+.footer-row__text {
+  flex-shrink: 0;
+  width: clamp(240px, 28vw, 380px);
+}
+.footer-row__gallery {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-self: flex-start;
+}
+
 /* mobile */
 @media (max-width: 760px) {
   section { padding: 44px 0; }
@@ -273,5 +310,32 @@ section {
       repeating-linear-gradient(-45deg, #000 0 14px, var(--green) 14px 28px),
       repeating-linear-gradient(-45deg, #000 0 14px, var(--green) 14px 28px);
     background-size: 40px 100%, 40px 100%;
+  }
+
+  .hero-row {
+    flex-direction: column;
+    gap: 24px;
+  }
+  .hero-row__text {
+    width: 100%;
+  }
+  .hero-row__gallery {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .footer-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .footer-row__text {
+    flex-shrink: 0;
+    width: auto;
+  }
+  .footer-row__gallery {
+    flex: 1;
+    min-width: 0;
+    gap: 6px;
   }
 }

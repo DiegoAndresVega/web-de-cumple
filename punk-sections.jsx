@@ -15,7 +15,7 @@ function FinkaKarFloating() {
       className="finkakar-float"
       style={{
         position: "fixed",
-        top: 16,
+        top: 90,
         right: 16,
         zIndex: 100,
         textDecoration: "none",
@@ -49,84 +49,95 @@ function Hero() {
     document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
   };
   return (
-    <section id="inicio" style={{ paddingTop: 80, paddingBottom: 50 }}>
+    <section id="inicio" style={{ paddingTop: 20, paddingBottom: 50 }}>
       <div className="container">
-        {/* Eyebrow on zebra */}
-        <div style={{ display: "inline-block", background: "#000", color: "var(--green)", padding: "6px 12px", border: "2px solid var(--green)", marginBottom: 14 }}>
-          <span className="mono" style={{ fontSize: 12, letterSpacing: "0.22em", fontWeight: 700, textTransform: "uppercase" }}>
-            ✕ FIESTA PRIVADA · VOL IV ✕ 30 CUMPLEAÑOS
-          </span>
-        </div>
+        <div className="hero-row">
+          <div className="hero-row__text">
+            {/* Eyebrow on zebra */}
+            <div style={{ display: "inline-block", background: "#000", color: "var(--green)", padding: "6px 12px", border: "2px solid var(--green)", marginBottom: 14 }}>
+              <span className="mono" style={{ fontSize: 12, letterSpacing: "0.22em", fontWeight: 700, textTransform: "uppercase" }}>
+                ✕ FIESTA PRIVADA · VOL IV ✕ 30 CUMPLEAÑOS
+              </span>
+            </div>
 
-        {/* Title — black slabs stacked, sit on zebra */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
-          <div
-            className="display"
-            style={{
-              fontSize: "clamp(64px, 14vw, 170px)",
-              background: "#000",
-              color: "var(--green)",
-              padding: "0 18px 8px",
-              lineHeight: 0.95,
-              border: "4px solid #000",
-              boxShadow: "8px 8px 0 #000",
-            }}
-          >
-            FINKA
-          </div>
-          <div
-            className="display"
-            style={{
-              fontSize: "clamp(64px, 14vw, 170px)",
-              background: "var(--green)",
+            {/* Title — black slabs stacked, sit on zebra */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+              <div
+                className="display"
+                style={{
+                  fontSize: "clamp(64px, 14vw, 170px)",
+                  background: "#000",
+                  color: "var(--green)",
+                  padding: "0 18px 8px",
+                  lineHeight: 0.95,
+                  border: "4px solid #000",
+                  boxShadow: "8px 8px 0 #000",
+                }}
+              >
+                FINKA
+              </div>
+              <div
+                className="display"
+                style={{
+                  fontSize: "clamp(64px, 14vw, 170px)",
+                  background: "var(--green)",
+                  color: "#000",
+                  padding: "0 18px 8px",
+                  lineHeight: 0.95,
+                  border: "4px solid #000",
+                  boxShadow: "8px 8px 0 #000",
+                  marginLeft: "6vw",
+                }}
+              >
+                FEST
+              </div>
+            </div>
+
+            {/* Date strip */}
+            <div style={{
+              marginTop: 26,
+              display: "inline-block",
+              background: "var(--ink)",
               color: "#000",
-              padding: "0 18px 8px",
-              lineHeight: 0.95,
-              border: "4px solid #000",
-              boxShadow: "8px 8px 0 #000",
-              marginLeft: "6vw",
-            }}
-          >
-            FEST
-          </div>
-        </div>
+              padding: "12px 18px",
+              border: "3px solid #000",
+              boxShadow: "6px 6px 0 var(--green)",
+            }}>
+              <div className="display" style={{ fontSize: "clamp(28px, 4.6vw, 46px)", color: "#000", lineHeight: 1, whiteSpace: "nowrap" }}>
+                19 · 20 · 21 JUN 2026
+              </div>
+              <div className="mono" style={{ marginTop: 6, fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                LA FINKA · a 15 minutos de Burgos
+              </div>
+            </div>
 
-        {/* Date strip */}
-        <div style={{
-          marginTop: 26,
-          display: "inline-block",
-          background: "var(--ink)",
-          color: "#000",
-          padding: "12px 18px",
-          border: "3px solid #000",
-          boxShadow: "6px 6px 0 var(--green)",
-        }}>
-          <div className="display" style={{ fontSize: "clamp(28px, 4.6vw, 46px)", color: "#000", lineHeight: 1, whiteSpace: "nowrap" }}>
-            19 · 20 · 21 JUN 2026
+            {/* CTAs */}
+            <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <a
+                className="btn"
+                href="#confirmar"
+                onClick={go("#confirmar")}
+                style={{ background: "var(--green)", color: "#000", outlineColor: "#000", borderColor: "#000", fontSize: 16, padding: "16px 24px" }}
+              >
+                CONFIRMAR →
+              </a>
+              <a
+                className="btn"
+                href="#finkakar"
+                onClick={go("#finkakar")}
+                style={{ background: "#000", color: "var(--green)", outlineColor: "var(--green)", borderColor: "var(--green)", fontSize: 16, padding: "16px 24px" }}
+              >
+                VIAJES ↘
+              </a>
+            </div>
           </div>
-          <div className="mono" style={{ marginTop: 6, fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-            LA FINKA · a 15 minutos de Burgos
-          </div>
-        </div>
 
-        {/* CTAs */}
-        <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <a
-            className="btn"
-            href="#confirmar"
-            onClick={go("#confirmar")}
-            style={{ background: "var(--green)", color: "#000", outlineColor: "#000", borderColor: "#000", fontSize: 16, padding: "16px 24px" }}
-          >
-            CONFIRMAR →
-          </a>
-          <a
-            className="btn"
-            href="#finkakar"
-            onClick={go("#finkakar")}
-            style={{ background: "#000", color: "var(--green)", outlineColor: "var(--green)", borderColor: "var(--green)", fontSize: 16, padding: "16px 24px" }}
-          >
-            VIAJES ↘
-          </a>
+          {/* Galería 2×2 */}
+          <div className="hero-row__gallery">
+            <img src="images/gallidiego.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
+            <img src="images/galliisthar.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
+            <img src="images/gallilara.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
+          </div>
         </div>
       </div>
     </section>
@@ -375,19 +386,33 @@ function Footer() {
     <footer style={{ paddingTop: 60, paddingBottom: 40 }}>
       <div className="container">
         <div className="panel-black" style={{ padding: "32px 24px", borderColor: "var(--green)", boxShadow: "8px 8px 0 var(--green)" }}>
-          <div className="display" style={{ fontSize: "clamp(56px, 12vw, 150px)", lineHeight: 0.85, color: "var(--green)" }}>
-            FINKA<br/>FEST<br/>
-            <span style={{ color: "var(--ink)" }}>·IV·</span>
+
+          {/* Fila superior: título + galería */}
+          <div className="footer-row">
+            <div className="footer-row__text">
+              <div className="display" style={{ fontSize: "clamp(56px, 12vw, 150px)", lineHeight: 0.85, color: "var(--green)" }}>
+                FINKA<br/>FEST<br/>
+                <span style={{ color: "var(--ink)" }}>·IV·</span>
+              </div>
+            </div>
+
+            {/* Galería 2×2 */}
+            <div className="footer-row__gallery">
+              <img src="images/gallidiego.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
+              <img src="images/galliisthar.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
+              <img src="images/gallilara.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
+            </div>
           </div>
 
-          <div style={{ marginTop: 26, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, paddingTop: 20, borderTop: "2px dashed var(--green)" }}>
+          {/* Info debajo de la línea punteada */}
+          <div style={{ marginTop: 26, display: "flex", flexDirection: "column", gap: 14, paddingTop: 20, borderTop: "2px dashed var(--green)" }}>
             <div>
               <div className="mono" style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--green)", marginBottom: 6 }}>CUÁNDO</div>
               <div className="sub" style={{ fontSize: 16 }}>19 · 20 · 21 JUN 2026</div>
             </div>
             <div>
               <div className="mono" style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--green)", marginBottom: 6 }}>DÓNDE</div>
-              <div className="sub" style={{ fontSize: 16 }}>LA FINKA · 15 minutos de Burgos</div>
+              <div className="sub" style={{ fontSize: 16 }}>LA FINKA · 15 min de Burgos</div>
             </div>
             <div>
               <div className="mono" style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--green)", marginBottom: 6 }}>SI VES ALGO RARO</div>
@@ -398,6 +423,7 @@ function Footer() {
           <div className="mono" style={{ marginTop: 26, fontSize: 11, opacity: 0.6, letterSpacing: "0.15em", textTransform: "uppercase" }}>
             FK·IV·2026 — GESTIONA TU MIERDA - ELR
           </div>
+
         </div>
       </div>
     </footer>
