@@ -370,8 +370,8 @@
 
       <!-- Name form (shown after game over) -->
       <div id="name-form" style="display:none">
-        <div id="name-label">TU NOMBRE · MÁX 9 CHARS</div>
-        <input id="name-input" type="text" maxlength="9" placeholder="JUGADOR" autocomplete="off" spellcheck="false">
+        <div id="name-label">TU NOMBRE * · MÁX 9 CHARS</div>
+        <input id="name-input" type="text" maxlength="9" placeholder="OBLIGATORIO" autocomplete="off" spellcheck="false">
       </div>
 
       <button class="overlay-btn" id="overlay-btn">▶ JUGAR</button>
@@ -583,8 +583,15 @@ function gameOver() {
 }
 
 async function handleSubmit() {
-  const raw  = nameInputEl.value.trim();
-  const name = raw.length > 0 ? raw.slice(0, 9).toUpperCase() : 'ANON';
+  const raw = nameInputEl.value.trim();
+  if (!raw) {
+    nameInputEl.style.borderColor = 'var(--red)';
+    nameInputEl.placeholder = 'PON TU NOMBRE →';
+    nameInputEl.focus();
+    return;
+  }
+  nameInputEl.style.borderColor = 'var(--green)';
+  const name = raw.slice(0, 9).toUpperCase();
   showOverlay('submitting');
   state = 'submitting';
   const scores = await saveScore(name, score);
