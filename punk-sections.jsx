@@ -131,7 +131,7 @@ function Hero() {
               </a>
               <a
                 className="btn"
-                href="buzon.html"
+                href="/buzon"
                 style={{ background: "var(--red)", color: "var(--ink)", outlineColor: "var(--red)", borderColor: "var(--ink)", fontSize: 16, padding: "16px 24px" }}
               >
                 BUZÓN DEL AMOR ♡
@@ -147,16 +147,16 @@ function Hero() {
             >
               ELIGE UN JUGADOR
             </div>
-            <a href="gallibird.html?char=2" style={{ display: "block" }}>
+            <a href="/gallibird?char=2" style={{ display: "block" }}>
               <img src="images/gallilara.png" alt="Lara" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
             </a>
-            <a href="gallibird.html?char=1" style={{ display: "block" }}>
+            <a href="/gallibird?char=1" style={{ display: "block" }}>
               <img src="images/galliisthar.png" alt="Isthar" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
             </a>
-            <a href="gallibird.html?char=0" style={{ display: "block" }}>
+            <a href="/gallibird?char=0" style={{ display: "block" }}>
               <img src="images/gallidiego.png" alt="Diego" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
             </a>
-            <a href="gallibird.html?char=3" style={{ display: "block" }}>
+            <a href="/gallibird?char=3" style={{ display: "block" }}>
               <img src="images/gallilau.png" alt="Lau" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
             </a>
           </div>

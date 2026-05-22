@@ -269,7 +269,7 @@ function BuzonApp() {
       <section id="inicio" style={{ paddingTop: 50, paddingBottom: 20 }}>
         <div className="container">
           <a
-            href="index.html"
+            href="/"
             className="btn buzon-back"
             style={{ background: "var(--green)", color: "#000", borderColor: "#000", outlineColor: "var(--green)", fontSize: 13, padding: "12px 20px", marginBottom: 28, display: "inline-flex", textDecoration: "none" }}
           >
