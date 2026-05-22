@@ -133,6 +133,7 @@
       display: block;
       background: #000;
       cursor: pointer;
+      image-rendering: -webkit-optimize-contrast;
     }
 
     /* ── Overlay ────────────────────────────── */
@@ -428,6 +429,8 @@ const FIREBASE_URL = 'https://finkafest-default-rtdb.europe-west1.firebasedataba
 // ── Canvas setup ──────────────────────────────────────
 const canvas = document.getElementById('canvas');
 const ctx    = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = 'high';
 const W = canvas.width, H = canvas.height;
 const GH = 58; // ground height
 
@@ -442,7 +445,7 @@ const B = {
   vy: 0,
   gravity: 0.44,
   flap: -6.5,
-  size: 52,
+  size: 68,
   rot: 0,
 };
 
