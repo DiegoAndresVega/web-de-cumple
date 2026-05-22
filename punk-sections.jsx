@@ -167,7 +167,7 @@ function Hero() {
 }
 
 /* ───────── CONQUIS ───────── */
-const CONQUIS_VIDEO = "https://www.youtube.com/watch?v=OhtJ0UUdKak"; // ENLACE
+const CONQUIS_VIDEO = "https://www.youtube.com/embed/iOM_NWOCGA8"; // ENLACE
 
 function Conquis() {
   const [showForm, setShowForm] = useState(false);
@@ -237,7 +237,7 @@ function Conquis() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showForm ? 20 : 0 }}>
                 <div>
                   <div className="sub" style={{ fontSize: 14, color: "var(--green)", marginBottom: 4 }}>SUBE TU VÍDEO</div>
-                  <div className="mono" style={{ fontSize: 11, color: "var(--ink-dim)", letterSpacing: "0.08em" }}>Comparte tu enlace para participar!!!!</div>
+                  <div className="mono" style={{ fontSize: 11, color: "var(--ink-dim)", letterSpacing: "0.08em" }}>Comparte tu enlace para participar!<br /> Si es en youtube recuerda seleccionar "sin listar" o "unlisted"</div>
                 </div>
                 <button
                   className="btn"
