@@ -170,6 +170,23 @@ function Hero() {
 const CONQUIS_VIDEO = ""; // ← pega aquí el embed URL de YouTube cuando lo tengas
 
 function Conquis() {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ nombre: "", enlace: "" });
+  const [sent, setSent] = useState(false);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!form.nombre.trim() || !form.enlace.trim()) return;
+    firebase.database().ref("videos").push({
+      nombre: form.nombre.trim(),
+      enlace: form.enlace.trim(),
+      ts: Date.now(),
+    });
+    setSent(true);
+    setForm({ nombre: "", enlace: "" });
+    setShowForm(false);
+  };
+
   return (
     <section id="conquis">
       <div className="container">
@@ -178,6 +195,7 @@ function Conquis() {
           CONQUIS
         </h2>
 
+        {/* Panel vídeo instrucciones */}
         <div className="panel-black" style={{ padding: 0, borderColor: "var(--green)", boxShadow: "8px 8px 0 var(--green)", overflow: "hidden" }}>
           {CONQUIS_VIDEO ? (
             <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
@@ -203,6 +221,56 @@ function Conquis() {
             </div>
           )}
         </div>
+
+        {/* Panel sube tu vídeo */}
+        <div className="panel-black" style={{ marginTop: 14, padding: "24px 22px", borderColor: "var(--green)", boxShadow: "8px 8px 0 var(--green)" }}>
+          {sent ? (
+            <div style={{ textAlign: "center" }}>
+              <div className="display" style={{ fontSize: "clamp(28px, 5vw, 48px)", color: "var(--green)", marginBottom: 14 }}>RECIBIDO ✓</div>
+              <p className="mono" style={{ fontSize: 12, color: "var(--ink-dim)", marginBottom: 18 }}>Tu enlace ya está en el tablón.</p>
+              <button className="btn" onClick={() => setSent(false)} style={{ background: "#000", color: "var(--green)", borderColor: "var(--green)" }}>
+                ← OTRO ENLACE
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showForm ? 20 : 0 }}>
+                <div>
+                  <div className="sub" style={{ fontSize: 14, color: "var(--green)", marginBottom: 4 }}>SUBE TU VÍDEO</div>
+                  <div className="mono" style={{ fontSize: 11, color: "var(--ink-dim)", letterSpacing: "0.08em" }}>Comparte tu enlace para participar!!!!</div>
+                </div>
+                <button
+                  className="btn"
+                  onClick={() => setShowForm(v => !v)}
+                  style={{ background: "var(--green)", color: "#000", borderColor: "#000", flexShrink: 0 }}
+                >
+                  {showForm ? "✕ CERRAR" : "↑ SUBE TU VÍDEO"}
+                </button>
+              </div>
+
+              {showForm && (
+                <form onSubmit={submit}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }} className="grid-2">
+                    <div className="field">
+                      <label style={{ color: "var(--ink)" }}>NOMBRE *</label>
+                      <input className="input" required placeholder="cómo te llamamos" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
+                    </div>
+                    <div className="field">
+                      <label style={{ color: "var(--ink)" }}>ENLACE *</label>
+                      <input className="input" required type="url" placeholder="https://..." value={form.enlace} onChange={e => setForm(f => ({ ...f, enlace: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+                    <button type="submit" className="btn" style={{ background: "var(--green)", color: "#000", borderColor: "#000", fontSize: 15, padding: "14px 24px" }}>
+                      ENVIAR →
+                    </button>
+                  </div>
+                </form>
+              )}
+            </>
+          )}
+        </div>
+
       </div>
     </section>
   );

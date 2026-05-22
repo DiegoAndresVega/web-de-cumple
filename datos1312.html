@@ -265,10 +265,20 @@
     function App() {
       const [rows, setRows]       = useState([]);
       const [loading, setLoading] = useState(true);
+      const [videos, setVideos]   = useState([]);
       const [canEdit, setCanEdit] = useState(false);
       const [showPw, setShowPw]   = useState(false);
       const [editing, setEditing] = useState(null);
       const [confirmDel, setConfirmDel] = useState(null);
+
+      useEffect(() => {
+        db().ref("videos").on("value", snap => {
+          const val = snap.val();
+          const arr = val ? Object.entries(val).map(([k,v])=>({_key:k,...v})) : [];
+          arr.sort((a,b)=>(b.ts||0)-(a.ts||0));
+          setVideos(arr);
+        });
+      }, []);
 
       useEffect(() => {
         const ref = db().ref("confirmaciones");
@@ -363,6 +373,35 @@
                         ),
                       )
                     )
+            )
+          )
+        ),
+
+        // ── Tabla vídeos ──
+        h("div",{style:{marginTop:48}},
+          h("div",{className:"grid-title",style:{marginBottom:0}},`Vídeos enviados · ${videos.length}`),
+          h("div",{className:"wrap"},
+            h("table",{style:{minWidth:"auto",width:"100%"}},
+              h("thead",null,h("tr",null,
+                h("th",null,"FECHA"),
+                h("th",null,"NOMBRE"),
+                h("th",null,"ENLACE"),
+                canEdit && h("th",null,""),
+              )),
+              h("tbody",null,
+                videos.length === 0
+                  ? h("tr",{className:"empty-row"},h("td",{colSpan:3},"Sin vídeos aún."))
+                  : videos.map(v =>
+                      h("tr",{key:v._key},
+                        h("td",{className:"dim",style:{fontSize:11,whiteSpace:"nowrap"}},fmt(v.ts)),
+                        h("td",{className:"bold"},v.nombre||"—"),
+                        h("td",null,h("a",{href:v.enlace,target:"_blank",rel:"noopener",style:{color:"var(--green)",wordBreak:"break-all"}},v.enlace)),
+                        canEdit && h("td",null,
+                          h("button",{className:"btn danger sm",onClick:()=>db().ref("videos/"+v._key).remove()},"BORRAR")
+                        ),
+                      )
+                    )
+              )
             )
           )
         ),
