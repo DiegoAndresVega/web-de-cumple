@@ -61,12 +61,12 @@ function Confirmar() {
           <FRow label="QUIÉN">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }} className="grid-2">
               <div className="field">
-                <label>Nombre *</label>
-                <input className="input" required value={f.nombre} onChange={(e) => set("nombre", e.target.value)} placeholder="cómo te llamamos" />
+                <label>Nombre y apellido *</label>
+                <input className="input" required value={f.nombre} onChange={(e) => set("nombre", e.target.value)} placeholder="nombre y apellido" />
               </div>
               <div className="field">
-                <label>Contacto <span className="opt">(tel · @)</span></label>
-                <input className="input" value={f.contacto} onChange={(e) => set("contacto", e.target.value)} placeholder="opcional" />
+                <label>Teléfono <span className="opt">(9 dígitos)</span></label>
+                <input className="input" type="tel" inputMode="numeric" pattern="[0-9]{9}" maxLength={9} value={f.contacto} onChange={(e) => set("contacto", e.target.value.replace(/\D/g, "").slice(0, 9))} placeholder="612345678" />
               </div>
             </div>
           </FRow>
