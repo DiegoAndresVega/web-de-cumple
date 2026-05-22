@@ -1,5 +1,30 @@
 // punk-viajes.jsx — FinkaKar: tablón de coches compartidos (Firebase)
 
+function NumStepper({ value, min, max, onChange }) {
+  const dec = () => { if (value > min) onChange(value - 1); };
+  const inc = () => { if (value < max) onChange(value + 1); };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 0, border: "3px solid #000", background: "#fff", width: "100%" }}>
+      <button type="button" onClick={dec} style={{
+        width: 52, height: 52, background: value <= min ? "#eee" : "#000",
+        color: value <= min ? "#aaa" : "var(--green)", border: "none",
+        fontSize: 28, fontWeight: 900, cursor: value <= min ? "default" : "pointer",
+        fontFamily: "Arial Black, sans-serif", flexShrink: 0,
+      }}>−</button>
+      <div style={{
+        flex: 1, textAlign: "center", fontSize: 24, fontWeight: 700,
+        fontFamily: "Archivo Black, sans-serif", color: "#000", userSelect: "none",
+      }}>{value}</div>
+      <button type="button" onClick={inc} style={{
+        width: 52, height: 52, background: value >= max ? "#eee" : "#000",
+        color: value >= max ? "#aaa" : "var(--green)", border: "none",
+        fontSize: 28, fontWeight: 900, cursor: value >= max ? "default" : "pointer",
+        fontFamily: "Arial Black, sans-serif", flexShrink: 0,
+      }}>+</button>
+    </div>
+  );
+}
+
 function FinkaKar() {
   const [trips, setTrips] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -270,11 +295,11 @@ function TripModal({ trip, onSave, onDelete, onClose }) {
           </div>
           <div className="field">
             <label>Plazas libres</label>
-            <input className="input" type="number" min="0" max="8" value={t.plazas} onChange={(e) => set("plazas", parseInt(e.target.value || "0"))} />
+            <NumStepper value={t.plazas} min={0} max={8} onChange={(v) => set("plazas", v)} />
           </div>
           <div className="field">
             <label>Plazas totales</label>
-            <input className="input" type="number" min="1" max="8" value={t.total} onChange={(e) => set("total", parseInt(e.target.value || "1"))} />
+            <NumStepper value={t.total} min={1} max={8} onChange={(v) => set("total", v)} />
           </div>
         </div>
 

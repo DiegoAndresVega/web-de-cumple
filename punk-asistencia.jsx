@@ -106,6 +106,7 @@ function Confirmar() {
                   {f.dormir === k ? "✓ " : ""}{lbl}
                 </span>
               ))}
+
             </div>
           </FRow>
 
@@ -128,7 +129,7 @@ function Confirmar() {
           <FRow label="SI QUIERES PUEDES APORTAR...">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {[
-                 ["cocino", "COCINO"],["taller", "TALLER"], ["juego", "JUEGO"], ["dj", "DJ"],
+                 ["cocino", "COCINO"], ["limpieza", "LIMPIEZA"] ,["taller", "TALLER"], ["juego", "JUEGO"], ["dj", "DJ"],
                 ["instrumento", "INSTRUMENTO"],
                 ["sonido", "SONIDO"],["otro", "OTRO"],
               ].map(([k, lbl]) => (
