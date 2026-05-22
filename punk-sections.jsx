@@ -167,7 +167,7 @@ function Hero() {
 }
 
 /* ───────── CONQUIS ───────── */
-const CONQUIS_VIDEO = "https://www.youtube.com/embed/AVsR5lB--sw?si=sd5M-ZC0hCxgvyCg";
+const CONQUIS_VIDEO = ""; // ← pega aquí el embed URL de YouTube cuando lo tengas
 
 function Conquis() {
   return (
