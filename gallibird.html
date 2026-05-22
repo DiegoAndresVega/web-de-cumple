@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FINKAFEST · PITAS LOKAS</title>
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bungee&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <!--
+  ══════════════════════════════════════════════════════
+   SETUP FIREBASE (2 minutos)
+  ══════════════════════════════════════════════════════
+  1. Ve a https://console.firebase.google.com
+  2. Crear proyecto → cualquier nombre → continuar
+  3. Build → Realtime Database → Create database → Test mode → Done
+  4. En la pestaña "Data" verás la URL:
+       https://TU-PROYECTO-default-rtdb.firebaseio.com
+  5. Pega esa URL en FIREBASE_URL aquí abajo (sin barra al final):
+  ══════════════════════════════════════════════════════
+  -->
+
+  <style>
+    :root {
+      --bg: #000;
+      --ink: #f4f4f0;
+      --ink-dim: #9a9a92;
+      --green: #cbdf5a;
+      --red: #d84242;
+      --stencil: "Bungee", "Anton", system-ui, sans-serif;
+      --body: "Space Mono", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--body);
+      overflow-x: hidden;
+    }
+
+    html {
+      background-color: #000;
+      background-image:
+        repeating-linear-gradient(-45deg, #000 0 22px, var(--green) 22px 44px),
+        repeating-linear-gradient(-45deg, #000 0 22px, var(--green) 22px 44px);
+      background-size: 90px 100%, 90px 100%;
+      background-position: left top, right top;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      opacity: 0.4;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    #wrapper {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Title ──────────────────────────────── */
+    #game-title {
+      font-family: var(--stencil);
+      font-size: clamp(2.2rem, 7vw, 3.8rem);
+      text-transform: uppercase;
+      color: var(--green);
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+    #game-title span { color: var(--ink); }
+
+    /* ── HUD ────────────────────────────────── */
+    #hud {
+      font-family: var(--stencil);
+      font-size: 0.9rem;
+      color: var(--ink-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    #hud strong { color: var(--green); }
+
+    /* ── Char picker ────────────────────────── */
+    #char-select { display: flex; gap: 10px; }
+
+    .char-btn {
+      width: 58px;
+      height: 58px;
+      border: 3px solid var(--ink-dim);
+      outline: 3px solid transparent;
+      cursor: pointer;
+      overflow: hidden;
+      background: #111;
+      padding: 0;
+      border-radius: 0;
+      transition: transform .08s, border-color .08s, outline-color .08s;
+    }
+    .char-btn img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+    .char-btn:hover { transform: translate(-2px,-2px); border-color: var(--green); }
+    .char-btn.active { border-color: var(--green); outline-color: var(--green); }
+
+    /* ── Canvas wrap ────────────────────────── */
+    #canvas-wrap { position: relative; }
+
+    @media (min-width: 700px) {
+      canvas {
+        width: 580px;
+        height: 769px;
+      }
+      #canvas-wrap { width: 580px; }
+      #leaderboard { max-width: 580px; }
+    }
+
+    canvas {
+      border: 3px solid var(--ink);
+      outline: 3px solid var(--green);
+      display: block;
+      background: #000;
+      cursor: pointer;
+    }
+
+    /* ── Overlay ────────────────────────────── */
+    #overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    #overlay-title {
+      font-family: var(--stencil);
+      font-size: clamp(2rem, 9vw, 3.2rem);
+      text-transform: uppercase;
+      color: var(--green);
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+
+    #overlay-sub {
+      font-family: var(--stencil);
+      font-size: 0.95rem;
+      color: var(--ink);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* Name input form */
+    #name-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #name-label {
+      font-family: var(--stencil);
+      font-size: 0.75rem;
+      color: var(--ink-dim);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    #name-input {
+      background: #000;
+      color: var(--green);
+      border: 3px solid var(--green);
+      font-family: var(--stencil);
+      font-size: 1.5rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      text-align: center;
+      width: 220px;
+      padding: 10px 14px;
+      outline: none;
+      border-radius: 0;
+      caret-color: var(--green);
+    }
+    #name-input::placeholder { color: #333; }
+    #name-input:focus { outline: 3px solid var(--ink); }
+
+    .overlay-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 26px;
+      background: var(--green);
+      color: #000;
+      border: 3px solid #000;
+      outline: 3px solid var(--green);
+      font-family: var(--stencil);
+      font-size: 0.95rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 0;
+      transition: transform .08s;
+    }
+    .overlay-btn:hover { transform: translate(-2px,-2px); background: var(--ink); }
+    .overlay-btn:active { transform: translate(1px,1px); }
+    .overlay-btn.secondary {
+      background: transparent;
+      color: var(--ink-dim);
+      border-color: var(--ink-dim);
+      outline-color: transparent;
+      font-size: 0.75rem;
+      padding: 8px 16px;
+    }
+    .overlay-btn.secondary:hover { background: transparent; color: var(--ink); border-color: var(--ink); transform: none; }
+
+    /* ── Hint ───────────────────────────────── */
+    #hint {
+      font-size: 0.7rem;
+      color: var(--ink-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ── Leaderboard ────────────────────────── */
+    #leaderboard {
+      width: 100%;
+      max-width: 420px;
+      border: 3px solid var(--ink);
+      outline: 3px solid var(--green);
+      background: #000;
+      padding: 0;
+    }
+
+    #lb-header {
+      background: var(--green);
+      color: #000;
+      font-family: var(--stencil);
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 12px 16px;
+      border-bottom: 3px solid #000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #lb-status {
+      font-size: 0.65rem;
+      letter-spacing: 0.06em;
+      color: #000;
+      opacity: 0.6;
+    }
+
+    #lb-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--body);
+      font-size: 0.78rem;
+    }
+
+    #lb-table thead tr {
+      border-bottom: 2px solid var(--green);
+    }
+
+    #lb-table th {
+      padding: 8px 12px;
+      text-align: left;
+      color: var(--ink-dim);
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 0.65rem;
+    }
+    #lb-table th:last-child { text-align: right; }
+
+    #lb-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #1a1a1a;
+      letter-spacing: 0.04em;
+    }
+    #lb-table td:last-child { text-align: right; }
+
+    #lb-table tr:last-child td { border-bottom: none; }
+
+    .lb-rank {
+      font-family: var(--stencil);
+      color: var(--ink-dim);
+      width: 30px;
+    }
+    .lb-rank.top3 { color: var(--green); }
+
+    .lb-name {
+      font-family: var(--stencil);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .lb-score {
+      font-family: var(--stencil);
+      color: var(--green);
+      font-size: 0.95rem;
+    }
+
+    .lb-date { color: var(--ink-dim); font-size: 0.65rem; }
+
+    .lb-mini {
+      width: 32px;
+      padding: 4px 6px 4px 12px;
+    }
+    .lb-mini img {
+      width: 28px;
+      height: 28px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid var(--ink-dim);
+      display: block;
+    }
+    #lb-table tr.highlight .lb-mini img { border-color: var(--green); }
+
+    #lb-table tr.highlight td { background: rgba(203,223,90,0.08); }
+    #lb-table tr.highlight .lb-name { color: var(--green); }
+
+    #lb-empty {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--ink-dim);
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+<div id="wrapper">
+
+  <div id="game-title">PITAS<span> LOKAS</span></div>
+
+  <div id="char-select">
+    <button class="char-btn active" data-i="0"><img src="images/gallidiego.png"  alt="Diego"></button>
+    <button class="char-btn"        data-i="1"><img src="images/galliisthar.png" alt="Isthar"></button>
+    <button class="char-btn"        data-i="2"><img src="images/gallilara.png"   alt="Lara"></button>
+    <button class="char-btn"        data-i="3"><img src="images/gallilau.png"    alt="Lau"></button>
+  </div>
+
+  <div id="hud">SCORE: <strong id="score-val">0</strong> &nbsp;·&nbsp; MEJOR: <strong id="best-val">0</strong></div>
+
+  <div id="canvas-wrap">
+    <canvas id="canvas" width="400" height="530"></canvas>
+
+    <div id="overlay">
+      <div id="overlay-title">READY?</div>
+      <div id="overlay-sub" style="display:none"></div>
+
+      <!-- Name form (shown after game over) -->
+      <div id="name-form" style="display:none">
+        <div id="name-label">TU NOMBRE · MÁX 9 CHARS</div>
+        <input id="name-input" type="text" maxlength="9" placeholder="JUGADOR" autocomplete="off" spellcheck="false">
+      </div>
+
+      <button class="overlay-btn" id="overlay-btn">▶ JUGAR</button>
+      <button class="overlay-btn secondary" id="skip-btn" style="display:none">SALTAR →</button>
+    </div>
+  </div>
+
+  <div id="hint">CLICK · ESPACIO · TAP → VOLAR</div>
+
+  <a href="index.html" style="
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 22px;
+    background: #000; color: var(--green);
+    border: 3px solid var(--green); outline: 3px solid transparent;
+    font-family: var(--stencil); font-size: 0.85rem;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    text-decoration: none;
+    transition: transform .08s;
+  " onmouseover="this.style.transform='translate(-2px,-2px)'" onmouseout="this.style.transform=''">
+    ← VOLVER A FINKAFEST
+  </a>
+
+  <!-- ── Leaderboard ── -->
+  <div id="leaderboard">
+    <div id="lb-header">
+      RANKING GLOBAL · TOP 20
+      <span id="lb-status">...</span>
+    </div>
+    <div id="lb-empty">CARGANDO...</div>
+    <table id="lb-table" style="display:none">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th></th>
+          <th>NOMBRE</th>
+          <th>SCORE</th>
+          <th>FECHA</th>
+        </tr>
+      </thead>
+      <tbody id="lb-body"></tbody>
+    </table>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+// ══════════════════════════════════════════════════════
+//  CONFIGURACIÓN FIREBASE
+//  Pega aquí la URL de tu Realtime Database
+//  Ej: https://mi-festival-default-rtdb.firebaseio.com
+// ══════════════════════════════════════════════════════
+const FIREBASE_URL = 'https://finkafest-default-rtdb.europe-west1.firebasedatabase.app';
+
+// ── Canvas setup ──────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const GH = 58; // ground height
+
+// ── Game state ────────────────────────────────────────
+let state = 'idle'; // idle | playing | dead | submitting
+let score = 0, best = 0, raf;
+let lastHighlight = -1; // row index of player's new score
+
+// ── Bird ──────────────────────────────────────────────
+const B = {
+  x: 88, y: H / 2,
+  vy: 0,
+  gravity: 0.44,
+  flap: -6.5,
+  size: 52,
+  rot: 0,
+};
+
+// ── Pillars ───────────────────────────────────────────
+const PW = 56, GAP = 148, SPEED = 2.8, INTERVAL = 90;
+let pillars = [], pillarTimer = 0;
+
+// ── Characters ────────────────────────────────────────
+const SRCS = [
+  'images/gallidiego.png',
+  'images/galliisthar.png',
+  'images/gallilara.png',
+  'images/gallilau.png',
+];
+const MINIS = [
+  'images/minis/diego.png',
+  'images/minis/isthar.png',
+  'images/minis/lara.png',
+  'images/minis/laura.png',
+];
+const urlChar = parseInt(new URLSearchParams(window.location.search).get('char') ?? '0');
+let currentChar = isNaN(urlChar) ? 0 : Math.min(3, Math.max(0, urlChar));
+const imgs = SRCS.map(src => { const i = new Image(); i.src = src; return i; });
+
+document.querySelectorAll('.char-btn').forEach(btn => {
+  btn.classList.toggle('active', +btn.dataset.i === currentChar);
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentChar = +btn.dataset.i;
+  });
+});
+
+// ── Ground stripe pattern ─────────────────────────────
+let groundPat = null;
+function buildGroundPattern() {
+  const oc = Object.assign(document.createElement('canvas'), { width: 44, height: 44 });
+  const ox = oc.getContext('2d');
+  ox.fillStyle = '#000';
+  ox.fillRect(0, 0, 44, 44);
+  ox.strokeStyle = '#cbdf5a';
+  ox.lineWidth = 22;
+  ox.beginPath();
+  [[-11,11,11,-11],[11,55,55,11],[33,55,55,33]].forEach(([x1,y1,x2,y2]) => {
+    ox.moveTo(x1,y1); ox.lineTo(x2,y2);
+  });
+  ox.stroke();
+  return ctx.createPattern(oc, 'repeat');
+}
+
+// ── Overlay helpers ───────────────────────────────────
+const overlayEl   = document.getElementById('overlay');
+const titleEl     = document.getElementById('overlay-title');
+const subEl       = document.getElementById('overlay-sub');
+const nameFormEl  = document.getElementById('name-form');
+const nameInputEl = document.getElementById('name-input');
+const overlayBtn  = document.getElementById('overlay-btn');
+const skipBtn     = document.getElementById('skip-btn');
+
+nameInputEl.addEventListener('input', () => {
+  nameInputEl.value = nameInputEl.value.toUpperCase();
+});
+nameInputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleSubmit();
+  e.stopPropagation();
+});
+
+function showOverlay(mode) {
+  overlayEl.style.display = 'flex';
+  if (mode === 'idle') {
+    titleEl.textContent    = 'READY?';
+    subEl.style.display    = 'none';
+    nameFormEl.style.display = 'none';
+    overlayBtn.textContent = '▶ JUGAR';
+    overlayBtn.style.display = '';
+    skipBtn.style.display  = 'none';
+  } else if (mode === 'dead') {
+    titleEl.textContent    = 'GAME OVER';
+    subEl.textContent      = `SCORE: ${score}`;
+    subEl.style.display    = '';
+    nameFormEl.style.display = 'flex';
+    nameInputEl.value      = '';
+    overlayBtn.textContent = '💾 GUARDAR';
+    overlayBtn.style.display = '';
+    skipBtn.textContent    = 'SALTAR →';
+    skipBtn.style.display  = '';
+    setTimeout(() => nameInputEl.focus(), 50);
+  } else if (mode === 'submitting') {
+    titleEl.textContent    = 'GUARDANDO...';
+    subEl.style.display    = 'none';
+    nameFormEl.style.display = 'none';
+    overlayBtn.style.display = 'none';
+    skipBtn.style.display  = 'none';
+  } else if (mode === 'saved') {
+    titleEl.textContent    = '¡GUARDADO!';
+    subEl.textContent      = `SCORE: ${score}`;
+    subEl.style.display    = '';
+    nameFormEl.style.display = 'none';
+    overlayBtn.textContent = '↺ REINTENTAR';
+    overlayBtn.style.display = '';
+    skipBtn.style.display  = 'none';
+  }
+}
+
+// ── Game logic ────────────────────────────────────────
+function reset() {
+  B.y = H / 2; B.vy = 0; B.rot = 0;
+  pillars = []; pillarTimer = 0; score = 0;
+  document.getElementById('score-val').textContent = '0';
+}
+
+function flap() {
+  if (state === 'dead' || state === 'submitting') return;
+  if (state === 'idle') { showReady(); return; }
+  if (state === 'ready') { beginPlay(); return; }
+  B.vy = B.flap;
+}
+
+function showReady() {
+  reset();
+  const topH = ((H - GH - GAP) / 2) | 0;
+  pillars.push({ x: Math.round(W * 0.65), topH, scored: false });
+  state = 'ready';
+  overlayEl.style.display = 'none';
+}
+
+function beginPlay() {
+  state = 'playing';
+  B.vy = B.flap;
+}
+
+function gameOver() {
+  state = 'dead';
+  if (score > best) best = score;
+  document.getElementById('best-val').textContent = best;
+  B.y = H / 2; B.vy = 0; B.rot = 0;
+  showOverlay('dead');
+}
+
+async function handleSubmit() {
+  const raw  = nameInputEl.value.trim();
+  const name = raw.length > 0 ? raw.slice(0, 9).toUpperCase() : 'ANON';
+  showOverlay('submitting');
+  state = 'submitting';
+  const scores = await saveScore(name, score);
+  renderLeaderboard(scores);
+  showOverlay('saved');
+  state = 'dead';
+  document.querySelector('#leaderboard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+overlayBtn.addEventListener('click', () => {
+  if (state === 'idle' || state === 'dead') {
+    if (overlayBtn.textContent.includes('GUARDAR')) { handleSubmit(); return; }
+    showReady();
+  }
+});
+
+skipBtn.addEventListener('click', () => {
+  showOverlay('saved');
+  renderLeaderboard(null);
+  state = 'dead';
+});
+
+// ── Update ────────────────────────────────────────────
+function circleRect(cx, cy, cr, rx, ry, rw, rh) {
+  const nx = Math.max(rx, Math.min(cx, rx + rw));
+  const ny = Math.max(ry, Math.min(cy, ry + rh));
+  return (cx - nx) ** 2 + (cy - ny) ** 2 < cr * cr;
+}
+
+function update() {
+  if (state !== 'playing') return;
+
+  B.vy  += B.gravity;
+  B.y   += B.vy;
+  B.rot  = Math.max(-28, Math.min(90, B.vy * 5));
+
+  if (B.y + B.size / 2 >= H - GH || B.y - B.size / 2 <= 0) { gameOver(); return; }
+
+  if (++pillarTimer >= INTERVAL) {
+    pillarTimer = 0;
+    const minTop = 55, maxTop = H - GH - GAP - 55;
+    const topH = (Math.random() * (maxTop - minTop) + minTop) | 0;
+    pillars.push({ x: W + 8, topH, scored: false });
+  }
+
+  const r = B.size / 2 - 6;
+  for (let i = pillars.length - 1; i >= 0; i--) {
+    const p = pillars[i];
+    p.x -= SPEED;
+    if (!p.scored && p.x + PW < B.x) {
+      p.scored = true; score++;
+      document.getElementById('score-val').textContent = score;
+    }
+    if (
+      circleRect(B.x, B.y, r, p.x, 0, PW, p.topH) ||
+      circleRect(B.x, B.y, r, p.x, p.topH + GAP, PW, H)
+    ) { gameOver(); return; }
+    if (p.x + PW < 0) pillars.splice(i, 1);
+  }
+}
+
+// ── Draw ──────────────────────────────────────────────
+function drawPillar(x, y, w, h, isTop) {
+  if (h <= 0) return;
+
+  // Body
+  ctx.fillStyle = '#0e0e0e';
+  ctx.fillRect(x, y, w, h);
+
+  // Horizontal block lines (masonry texture)
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.strokeStyle = '#cbdf5a';
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.18;
+  const step = 18;
+  for (let ly = (y + step - (y % step)); ly < y + h; ly += step) {
+    ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + w, ly); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Outer border
+  ctx.strokeStyle = '#cbdf5a';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x, y, w, h);
+
+  // Capital (wide flat cap at the open end)
+  const CH = 14, CX = x - 7, CW = w + 14;
+  const CY = isTop ? y + h - CH : y;
+  ctx.fillStyle = '#1c1c1c';
+  ctx.fillRect(CX, CY, CW, CH);
+  ctx.strokeStyle = '#cbdf5a';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(CX, CY, CW, CH);
+
+  // Accent line on capital
+  ctx.fillStyle = '#cbdf5a';
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(CX + 4, CY + 4, CW - 8, 2);
+  ctx.globalAlpha = 1;
+}
+
+function draw() {
+  ctx.fillStyle = '#080808';
+  ctx.fillRect(0, 0, W, H - GH);
+
+  // Scanlines
+  for (let y = 0; y < H - GH; y += 4) {
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(0, y, W, 2);
+  }
+
+  for (const p of pillars) {
+    drawPillar(p.x, 0, PW, p.topH, true);
+    drawPillar(p.x, p.topH + GAP, PW, H - GH - (p.topH + GAP), false);
+  }
+
+  // Ground
+  ctx.fillStyle = '#cbdf5a';
+  ctx.fillRect(0, H - GH, W, GH);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, H - GH, W, 3);
+  if (!groundPat) groundPat = buildGroundPattern();
+  ctx.save();
+  ctx.fillStyle = groundPat;
+  ctx.fillRect(0, H - GH + 3, W, GH - 3);
+  ctx.restore();
+
+  // Bird
+  const img = imgs[currentChar];
+  ctx.save();
+  ctx.translate(B.x, B.y);
+  ctx.rotate(B.rot * Math.PI / 180);
+  ctx.beginPath();
+  ctx.arc(0, 0, B.size / 2, 0, Math.PI * 2);
+  ctx.clip();
+  if (img.complete && img.naturalWidth > 0) {
+    ctx.drawImage(img, -B.size / 2, -B.size / 2, B.size, B.size);
+  } else {
+    ctx.fillStyle = '#cbdf5a'; ctx.fill();
+  }
+  ctx.restore();
+
+  // Bird ring
+  ctx.save();
+  ctx.translate(B.x, B.y);
+  ctx.rotate(B.rot * Math.PI / 180);
+  ctx.beginPath();
+  ctx.arc(0, 0, B.size / 2, 0, Math.PI * 2);
+  ctx.strokeStyle = '#cbdf5a';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+
+  // In-game score
+  if (state === 'playing') {
+    ctx.font = '28px Bungee, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#000';
+    ctx.strokeText(score, W / 2, 44);
+    ctx.fillStyle = '#cbdf5a';
+    ctx.fillText(score, W / 2, 44);
+  }
+}
+
+function loop() {
+  if (state === 'playing') update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop(); // render loop arranca desde el inicio
+
+// ── Input ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); flap(); }
+});
+canvas.addEventListener('click', flap);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); flap(); }, { passive: false });
+
+// ── Firebase leaderboard ──────────────────────────────
+const DB = `${FIREBASE_URL}/leaderboard.json`;
+
+async function fetchScores() {
+  try {
+    const res = await fetch(DB);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+async function saveScore(name, pts) {
+  let scores = await fetchScores();
+  const entry = { name: name.slice(0, 9).toUpperCase(), score: pts, date: new Date().toISOString().slice(0, 10), mini: MINIS[currentChar] };
+  scores.push(entry);
+  scores.sort((a, b) => b.score - a.score);
+  scores = scores.slice(0, 20);
+  lastHighlight = scores.findIndex(s => s === entry);
+  try {
+    await fetch(DB, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(scores),
+    });
+  } catch { /* show local result anyway */ }
+  return scores;
+}
+
+// ── Render leaderboard ────────────────────────────────
+function renderLeaderboard(scores) {
+  const emptyEl  = document.getElementById('lb-empty');
+  const tableEl  = document.getElementById('lb-table');
+  const bodyEl   = document.getElementById('lb-body');
+  const statusEl = document.getElementById('lb-status');
+
+  if (!scores || scores.length === 0) {
+    emptyEl.textContent = scores === null ? 'SIN PUNTUACIONES AÚN' : 'SIN CONEXIÓN';
+    emptyEl.style.display = '';
+    tableEl.style.display = 'none';
+    statusEl.textContent  = scores === null ? '0 JUGADORES' : 'OFFLINE';
+    return;
+  }
+
+  statusEl.textContent = `${scores.length} JUGADORES`;
+  emptyEl.style.display = 'none';
+  tableEl.style.display = '';
+
+  bodyEl.innerHTML = scores.map((s, i) => `
+    <tr class="${i === lastHighlight ? 'highlight' : ''}">
+      <td class="lb-rank ${i < 3 ? 'top3' : ''}">${i + 1}</td>
+      <td class="lb-mini">${s.mini ? `<img src="${s.mini}" alt="">` : ''}</td>
+      <td class="lb-name">${s.name}</td>
+      <td class="lb-score">${s.score}</td>
+      <td class="lb-date">${s.date}</td>
+    </tr>
+  `).join('');
+}
+
+// Load leaderboard on page load
+(async () => {
+  const scores = await fetchScores();
+  renderLeaderboard(scores.length > 0 ? scores : null);
+})();
+</script>
+</body>
+</html>

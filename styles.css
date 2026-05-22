@@ -7,7 +7,7 @@
   --green: #cbdf5a;
   --green-2: #23a510dc;
   --green-dim: #1a8a0a;
-  --red: #ff2a2a;
+  --red: #d84242;
   --yellow: #ffe600;
 
   --display: "Anton", "Archivo Black", Impact, system-ui, sans-serif;
@@ -305,6 +305,13 @@ section {
 /* mobile */
 @media (max-width: 760px) {
   section { padding: 44px 0; }
+
+  .finkakar-float {
+    padding: 8px 12px 10px !important;
+    max-width: 160px !important;
+  }
+  .finkakar-float .display { font-size: 22px !important; }
+  .finkakar-float .mono { font-size: 9px !important; }
   html {
     background-image:
       repeating-linear-gradient(-45deg, #000 0 14px, var(--green) 14px 28px),

@@ -15,7 +15,7 @@ function FinkaKarFloating() {
       className="finkakar-float"
       style={{
         position: "fixed",
-        top: 90,
+        top: 120,
         right: 16,
         zIndex: 100,
         textDecoration: "none",
@@ -56,7 +56,7 @@ function Hero() {
             {/* Eyebrow on zebra */}
             <div style={{ display: "inline-block", background: "#000", color: "var(--green)", padding: "6px 12px", border: "2px solid var(--green)", marginBottom: 14 }}>
               <span className="mono" style={{ fontSize: 12, letterSpacing: "0.22em", fontWeight: 700, textTransform: "uppercase" }}>
-                ✕ FIESTA PRIVADA · VOL IV ✕ 30 CUMPLEAÑOS
+                X · FIESTA PRIVADA · VOL IV · 30 CUMPLEAÑOS · X
               </span>
             </div>
 
@@ -129,15 +129,79 @@ function Hero() {
               >
                 VIAJES ↘
               </a>
+              <a
+                className="btn"
+                href="buzon.html"
+                style={{ background: "var(--red)", color: "var(--ink)", outlineColor: "var(--red)", borderColor: "var(--ink)", fontSize: 16, padding: "16px 24px" }}
+              >
+                BUZÓN DEL AMOR ♡
+              </a>
             </div>
           </div>
 
           {/* Galería 2×2 */}
           <div className="hero-row__gallery">
-            <img src="images/gallidiego.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
-            <img src="images/galliisthar.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
-            <img src="images/gallilara.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
+            <div
+              className="display"
+              style={{ gridColumn: "1 / -1", background: "var(--green)", color: "#000", border: "3px solid #000", outline: "3px solid var(--green)", padding: "8px 14px", fontSize: "clamp(13px, 1.8vw, 20px)", letterSpacing: "0.08em", textAlign: "center" }}
+            >
+              ELIGE UN JUGADOR
+            </div>
+            <a href="gallibird.html?char=2" style={{ display: "block" }}>
+              <img src="images/gallilara.png" alt="Lara" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
+            </a>
+            <a href="gallibird.html?char=1" style={{ display: "block" }}>
+              <img src="images/galliisthar.png" alt="Isthar" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
+            </a>
+            <a href="gallibird.html?char=0" style={{ display: "block" }}>
+              <img src="images/gallidiego.png" alt="Diego" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
+            </a>
+            <a href="gallibird.html?char=3" style={{ display: "block" }}>
+              <img src="images/gallilau.png" alt="Lau" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
+            </a>
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───────── CONQUIS ───────── */
+const CONQUIS_VIDEO = ""; // ← pega aquí el embed URL de YouTube cuando lo tengas
+
+function Conquis() {
+  return (
+    <section id="conquis">
+      <div className="container">
+        <div className="eyebrow">// CONQUIS</div>
+        <h2 className="display" style={{ fontSize: "clamp(40px, 8vw, 96px)", display: "inline-block", background: "#000", color: "var(--green)", padding: "10px 18px 16px", border: "4px solid #000", boxShadow: "8px 8px 0 var(--ink)", marginBottom: 26, lineHeight: 1 }}>
+          CONQUIS
+        </h2>
+
+        <div className="panel-black" style={{ padding: 0, borderColor: "var(--green)", boxShadow: "8px 8px 0 var(--green)", overflow: "hidden" }}>
+          {CONQUIS_VIDEO ? (
+            <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+              <iframe
+                src={CONQUIS_VIDEO}
+                title="Conquis"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+              />
+            </div>
+          ) : (
+            <div style={{ padding: "60px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+              <div className="display" style={{ fontSize: "clamp(28px, 5vw, 52px)", color: "var(--green)", lineHeight: 1 }}>
+                PRONTO VIDEO
+              </div>
+              <div className="display" style={{ fontSize: "clamp(20px, 3vw, 36px)", color: "var(--ink-dim)", lineHeight: 1 }}>
+                ATENTO.
+              </div>
+              <div className="mono" style={{ marginTop: 8, fontSize: 11, color: "var(--ink-dim)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                ↳ Aquí irá el vídeo de instrucciones
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -164,6 +228,8 @@ function Programa() {
         ["-", "Juegos populares · Serigrafía · Mercadillo"],
         ["-", "Vermú cuñado "],
         ["-", "Paella para todes  (invitamos)"],
+        ["-", "Siesta · piscina · relax"],
+        ["-", "CONQUISTADOR!!"],
         ["-", "actividades"],
         ["-", "Cena picoteo + fiesta "],
       ],
@@ -265,7 +331,7 @@ function Info() {
     { titulo: "Animales bienvenidos, con responsabilidad", detalle: "Cuidemos entre todes que sea un espacio seguro para ellos y la finka." },
     { titulo: "Recoge tu basura", detalle: "Llevate una bolsa de basura al marchar." },
     { titulo: "Trae instrumentos para la jam del viernes", detalle: "Entre todos hacemos la JAM" },
-    { titulo: "En el baño seco NO SE MEA", detalle: "Primero meas, despues cagas." },
+    { titulo: "En el baño seco NO SE MEA", detalle: "Primero meas fuera, despues cagas." },
     { titulo: "Hay animales!", detalle: "En la finka hay animales, por favor no les molestes. Suficiente tienen con aguantar un finde de fiesta de fondo" },
   ];
 
@@ -401,6 +467,7 @@ function Footer() {
               <img src="images/gallidiego.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
               <img src="images/galliisthar.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
               <img src="images/gallilara.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
+              <img src="images/gallilau.png" alt="Finkafest" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1" }} />
             </div>
           </div>
 
@@ -421,7 +488,7 @@ function Footer() {
           </div>
 
           <div className="mono" style={{ marginTop: 26, fontSize: 11, opacity: 0.6, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-            FK·IV·2026 — GESTIONA TU MIERDA - ELR
+            FK·IV·2026 — GESTIONA TU MIERDA 
           </div>
 
         </div>
@@ -430,4 +497,4 @@ function Footer() {
   );
 }
 
-Object.assign(window, { FinkaKarFloating, Hero, Programa, Marquee, Info, Footer });
+Object.assign(window, { FinkaKarFloating, Hero, Programa, Marquee, Info, Conquis, Footer });

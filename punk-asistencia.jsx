@@ -101,7 +101,7 @@ function Confirmar() {
           {/* Dormir */}
           <FRow label="DÓNDE DUERMES">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {[["tienda", "TIENDA"], ["furgo", "FURGO"], ["dia", "SOLO DÍA"], ["necesito", "🥺 NECESITO LUGAR"]].map(([k, lbl]) => (
+              {[["tienda", "TIENDA"], ["furgo", "FURGO"], ["dia", "SOLO DÍA"], ["necesito", " NECESITO LUGAR"]].map(([k, lbl]) => (
                 <span key={k} className={`chip ${f.dormir === k ? "on" : ""}`} onClick={() => set("dormir", k)}>
                   {f.dormir === k ? "✓ " : ""}{lbl}
                 </span>

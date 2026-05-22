@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="50" fill="#cbdf5a"/>
+  <circle cx="50" cy="50" r="40" fill="#000"/>
+  <text x="50" y="68" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="46" fill="#cbdf5a">FK</text>
+</svg>

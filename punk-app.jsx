@@ -17,6 +17,8 @@ function App() {
 
       <Info />
 
+      <Conquis />
+
       <Programa />
 
       <Confirmar />
