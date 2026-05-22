@@ -448,6 +448,20 @@ function Info() {
 
 /* ───────── FOOTER ───────── */
 function Footer() {
+  const [visits, setVisits] = useState(null);
+
+  useEffect(() => {
+    try {
+      let vid = localStorage.getItem("fk_vid");
+      if (!vid) {
+        vid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem("fk_vid", vid);
+        firebase.database().ref("visits/" + vid).set(1);
+      }
+      firebase.database().ref("visits").once("value", s => setVisits(s.numChildren()));
+    } catch(e) {}
+  }, []);
+
   return (
     <footer style={{ paddingTop: 60, paddingBottom: 40 }}>
       <div className="container">
@@ -488,7 +502,7 @@ function Footer() {
           </div>
 
           <div className="mono" style={{ marginTop: 26, fontSize: 11, opacity: 0.6, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-            FK·IV·2026 — GESTIONA TU MIERDA 
+            FK·IV·2026 — GESTIONA TU MIERDA{visits !== null ? ` · ${visits}` : ""}
           </div>
 
         </div>
