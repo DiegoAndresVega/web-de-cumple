@@ -117,9 +117,9 @@ function Hero() {
                 className="btn"
                 href="#confirmar"
                 onClick={go("#confirmar")}
-                style={{ background: "var(--green)", color: "#000", outlineColor: "#000", borderColor: "#000", fontSize: 16, padding: "16px 24px" }}
+                style={{ background: "var(--green)", color: "#000", outlineColor: "#000", borderColor: "#000", fontSize: 18, padding: "16px 18px", lineHeight: 1.35, textAlign: "center" }}
               >
-                CONFIRMAR →
+                CONFIRMAR<br/>ASISTENCIA →
               </a>
               <a
                 className="btn"
