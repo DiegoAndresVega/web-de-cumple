@@ -167,7 +167,7 @@ function Hero() {
 }
 
 /* ───────── CONQUIS ───────── */
-const CONQUIS_VIDEO = ""; // ← pega aquí el embed URL de YouTube cuando lo tengas
+const CONQUIS_VIDEO = "https://www.youtube.com/watch?v=OhtJ0UUdKak"; // ENLACE
 
 function Conquis() {
   const [showForm, setShowForm] = useState(false);
