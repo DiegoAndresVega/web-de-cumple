@@ -294,8 +294,9 @@
       const vie      = rows.filter(r=>r.dias?.vie).length;
       const sab      = rows.filter(r=>r.dias?.sab).length;
       const dom      = rows.filter(r=>r.dias?.dom).length;
-      const sinViaje = rows.filter(r=>r.transporte==="necesito").length;
-      const dieta    = rows.filter(r=>r.dieta?.length>0||r.alergias).length;
+      const sinViaje  = rows.filter(r=>r.transporte==="necesito").length;
+      const sinDormir = rows.filter(r=>r.dormir==="necesito").length;
+      const dieta     = rows.filter(r=>r.dieta?.length>0||r.alergias).length;
 
       const cols = ["Fecha","Nombre","Contacto","Dias","Transporte","Duerme","Dieta / Alergias","Aporta","Notas",...(canEdit?[""]:[])] ;
 
@@ -312,7 +313,7 @@
         ),
 
         h("div",{className:"stats"},
-          [[rows.length,"Total"],[vie,"Vie 19"],[sab,"Sab 20"],[dom,"Dom 21"],[sinViaje,"Sin viaje"],[dieta,"Dieta especial"]].map(([n,lbl])=>
+          [[rows.length,"Total"],[vie,"Vie 19"],[sab,"Sab 20"],[dom,"Dom 21"],[sinViaje,"Sin viaje"],[sinDormir,"Sin dormir"],[dieta,"Dieta especial"]].map(([n,lbl])=>
             h("div",{className:"stat",key:lbl},
               h("div",{className:"stat-num"},loading?"—":n),
               h("div",{className:"stat-lbl"},lbl)
@@ -341,7 +342,7 @@
                         h("td",{style:{whiteSpace:"nowrap"}},
                           r.transporte==="necesito"?h("span",{className:"pill red"},"NECESITA SITIO"):TRANSPORTES[r.transporte]||r.transporte||"—"
                         ),
-                        h("td",null,DORMIR[r.dormir]||r.dormir||"—"),
+                        h("td",null, r.dormir==="necesito" ? h("span",{className:"pill red"},"NECESITA LUGAR") : DORMIR[r.dormir]||r.dormir||"—"),
                         h("td",null,
                           (r.dieta||[]).map(d=>pill(d)),
                           r.alergias?h("div",{style:{marginTop:4,fontSize:12}},r.alergias):null,
