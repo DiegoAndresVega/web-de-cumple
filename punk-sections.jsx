@@ -462,7 +462,7 @@ function Info() {
               </div>
               <p className="mono" style={{ fontSize: 13, color: "#000", lineHeight: 1.6, margin: 0, maxWidth: 860 }}>
                 Esta tradicion es posible gracias al prestamo de la finka. Por lo que hay que cuidarla y respetarla. <br></br>
-                Solo pedimos una aportacion de <span style={{ background: "var(--green)", color: "#000", fontWeight: 700, padding: "1px 6px", border: "1.5px solid #000", display: "inline-block", lineHeight: 1.4 }}>5€</span> o la voluntad para poder cubrir parte de los gastos de comida, bebida y poder dejar algo para el espacio.
+                Solo pedimos una aportacion de <span style={{ background: "var(--green)", color: "#000", fontWeight: 700, padding: "1px 6px", border: "1.5px solid #000", display: "inline-block", lineHeight: 1.4 }}>10€</span> para poder cubrir parte de los gastos de comida, bebida y poder dejar algo para el espacio. (trae efectivo)
               </p>
             </div>
           </div>
