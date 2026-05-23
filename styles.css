@@ -281,7 +281,7 @@ section {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  align-self: flex-start;
+  align-self: center;
 }
 
 .footer-row {
@@ -302,6 +302,14 @@ section {
   align-self: flex-start;
 }
 
+/* FinkaKar right column — solo desktop */
+.finkakar-right { margin-top: 40px; }
+@media (max-width: 760px) { .finkakar-right { margin-top: 0; } }
+
+/* Hero marquee visibility */
+.hero-marquee-mobile { display: none; }
+.desktop-marquee-wrapper { display: block; }
+
 /* mobile */
 @media (max-width: 760px) {
   section { padding: 44px 0; }
@@ -319,6 +327,13 @@ section {
     background-size: 40px 100%, 40px 100%;
   }
 
+  .hero-marquee-mobile {
+    display: block;
+    width: calc(100% + 40px);
+    margin-left: -20px;
+  }
+  .desktop-marquee-wrapper { display: none; }
+
   .hero-row {
     flex-direction: column;
     gap: 24px;
@@ -329,6 +344,7 @@ section {
   .hero-row__gallery {
     width: 100%;
     gap: 8px;
+    margin-top: 20px;
   }
 
   .footer-row {

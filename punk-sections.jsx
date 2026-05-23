@@ -15,7 +15,7 @@ function FinkaKarFloating() {
       className="finkakar-float"
       style={{
         position: "fixed",
-        top: 120,
+        top: 180,
         right: 16,
         zIndex: 100,
         textDecoration: "none",
@@ -136,7 +136,33 @@ function Hero() {
               >
                 BUZÓN DEL AMOR ♡
               </a>
+              <a
+                className="btn"
+                href="fotos.html"
+                style={{
+                  background: "var(--ink)",
+                  color: "#000",
+                  outlineColor: "var(--green)",
+                  borderColor: "#000",
+                  fontSize: 18,
+                  padding: "16px 18px",
+                  lineHeight: 1.35,
+                  textAlign: "center",
+                }}
+              >
+                EDICIONES<br/>PASADAS ↗
+              </a>
             </div>
+          </div>
+
+          {/* Marquee visible solo en móvil, entre botones y galería */}
+          <div className="hero-marquee-mobile">
+            <Marquee items={[
+              "19·20·21 JUN 2026",
+              "LA FINKA · 15 minutos de Burgos",
+              "CUIDA LA FINKA · CUIDA A LA PEÑA",
+              "ESPACIO SEGURO",
+            ]} />
           </div>
 
           {/* Galería 2×2 */}
@@ -294,7 +320,7 @@ function Programa() {
       blocks: [
         ["-", "Desayuno rico (invitamos)"],
         ["-", "Juegos populares · Serigrafía · Mercadillo"],
-        ["-", "Vermú cuñado "],
+        ["-", "Vermú cuñado · Taller de trapecio "],
         ["-", "Paella para todes  (invitamos)"],
         ["-", "Siesta · piscina · relax"],
         ["-", "CONQUISTADOR!!"],
