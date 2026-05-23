@@ -796,7 +796,7 @@ async function saveScore(name, pts) {
   const entry = { name: name.slice(0, 9).toUpperCase(), score: pts, date: new Date().toISOString().slice(0, 10), mini: MINIS[currentChar] };
   scores.push(entry);
   scores.sort((a, b) => b.score - a.score);
-  scores = scores.slice(0, 20);
+  scores = scores.slice(0, 50);
   lastHighlight = scores.findIndex(s => s === entry);
   try {
     await fetch(DB, {
