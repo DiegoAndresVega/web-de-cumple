@@ -400,7 +400,7 @@ function Info() {
     { titulo: "Trae tu bebida", detalle: "Habrá bebida comunitaria, ten en cuenta que lo que entre en neveras puede acabar siendo de todos." },
     { titulo: "Colabora con las tareas", detalle: "Si ves algo que hacer, hazlo." },
     { titulo: "La fiesta del sábado puede durar hasta por la mañana", detalle: "Si quieres dormir trae tapones." },
-    { titulo: "Evita traer a tu mascota", detalle: "Si no tienes otra opción, hazte cargo. (el último día recoges cacas)." },
+    { titulo: "Evita traer a tu mascota", detalle: "Si no tienes otra opción, hazte cargo. Cuidemos la finka y los animales que viven aquí." },
     { titulo: "Recoge tu basura", detalle: "Llévate una bolsa de basura al marchar." },
     { titulo: "Trae instrumentos para la jam del viernes", detalle: "Entre todos hacemos la JAM." },
     { titulo: "En el baño seco NO SE MEA", detalle: "Primero meas fuera, después cagas." },
