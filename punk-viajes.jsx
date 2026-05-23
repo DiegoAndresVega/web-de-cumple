@@ -200,8 +200,13 @@ function FinkaKar() {
             </div>
 
             <div className="trips-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, alignItems: "start" }}>
-              <PassengerCard example passenger={{ nombre: "Marta", origen: "Granada", dia: "VIE", hora: "Mañana", contacto: "@marta_g", notas: "Puedo adaptarme a horario si alguien viene del sur!" }} />
               {!loadingPax && passengers.map((p) => <PassengerCard key={p.id} passenger={p} />)}
+              {!loadingPax && !passengers.length && (
+                <div style={{ padding: 22, border: "3px dashed #000", color: "#000" }}>
+                  <div className="sub" style={{ fontSize: 22 }}>NADA AUN</div>
+                  <p className="mono" style={{ fontSize: 13, marginTop: 6, fontWeight: 700 }}>Sé el primero en publicar.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
