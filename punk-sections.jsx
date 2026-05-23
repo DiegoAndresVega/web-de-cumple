@@ -131,7 +131,7 @@ function Hero() {
               </a>
               <a
                 className="btn"
-                href="/buzon"
+                href="buzon.html"
                 style={{ background: "var(--red)", color: "var(--ink)", outlineColor: "var(--red)", borderColor: "var(--ink)", fontSize: 16, padding: "16px 24px" }}
               >
                 BUZÓN DEL AMOR ♡
@@ -147,16 +147,16 @@ function Hero() {
             >
               ELIGE UN JUGADOR
             </div>
-            <a href="/gallibird?char=2" style={{ display: "block" }}>
+            <a href="gallibird.html?char=2" style={{ display: "block" }}>
               <img src="images/gallilara.png" alt="Lara" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
             </a>
-            <a href="/gallibird?char=1" style={{ display: "block" }}>
+            <a href="gallibird.html?char=1" style={{ display: "block" }}>
               <img src="images/galliisthar.png" alt="Isthar" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
             </a>
-            <a href="/gallibird?char=0" style={{ display: "block" }}>
+            <a href="gallibird.html?char=0" style={{ display: "block" }}>
               <img src="images/gallidiego.png" alt="Diego" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
             </a>
-            <a href="/gallibird?char=3" style={{ display: "block" }}>
+            <a href="gallibird.html?char=3" style={{ display: "block" }}>
               <img src="images/gallilau.png" alt="Lau" style={{ width: "100%", display: "block", objectFit: "cover", aspectRatio: "1", transition: "opacity .15s" }} onMouseOver={e => e.target.style.opacity=".75"} onMouseOut={e => e.target.style.opacity="1"} />
             </a>
           </div>
@@ -167,7 +167,7 @@ function Hero() {
 }
 
 /* ───────── CONQUIS ───────── */
-const CONQUIS_VIDEO = "https://www.youtube.com/embed/iOM_NWOCGA8"; // ENLACE
+const CONQUIS_VIDEO = "https://www.youtube.com/embed/BU_khMBOR3U?si=aCvEhhfUGJkOcJul"; // ENLACE
 
 function Conquis() {
   const [showForm, setShowForm] = useState(false);
@@ -396,15 +396,15 @@ function Info() {
   ];
 
   const normas = [
-    { titulo: "Cero colillas al suelo", detalle: "Habra muchos ceniceros, USALOS." },
-    { titulo: "Trae tu bebida", detalle: "Habra bebida comunitaria, ten en cuenta que lo que entre en neveras puede acabar siendo de todos." },
+    { titulo: "Cero colillas al suelo", detalle: "Habrá muchos ceniceros, ÚSALOS." },
+    { titulo: "Trae tu bebida", detalle: "Habrá bebida comunitaria, ten en cuenta que lo que entre en neveras puede acabar siendo de todos." },
     { titulo: "Colabora con las tareas", detalle: "Si ves algo que hacer, hazlo." },
-    { titulo: "La fiesta del sabado puede durar hasta por la mañana", detalle: "si quieres dormir trae tapones." },
-    { titulo: "Evita traer a tu mascota", detalle: "Si no tienes otra opcion, hazte cargo. (el ultimo dia recoges cacas)." },
-    { titulo: "Recoge tu basura", detalle: "Llevate una bolsa de basura al marchar." },
-    { titulo: "Trae instrumentos para la jam del viernes", detalle: "Entre todos hacemos la JAM" },
-    { titulo: "En el baño seco NO SE MEA", detalle: "Primero meas fuera, despues cagas." },
-    { titulo: "Hay animales!", detalle: "En la finka hay animales, por favor no les molestes. Suficiente tienen con aguantar un finde de fiesta de fondo" },
+    { titulo: "La fiesta del sábado puede durar hasta por la mañana", detalle: "Si quieres dormir trae tapones." },
+    { titulo: "Evita traer a tu mascota", detalle: "Si no tienes otra opción, hazte cargo. (el último día recoges cacas)." },
+    { titulo: "Recoge tu basura", detalle: "Llévate una bolsa de basura al marchar." },
+    { titulo: "Trae instrumentos para la jam del viernes", detalle: "Entre todos hacemos la JAM." },
+    { titulo: "En el baño seco NO SE MEA", detalle: "Primero meas fuera, después cagas." },
+    { titulo: "¡Hay animales!", detalle: "En la finka hay animales, por favor no les molestes. Suficiente tienen con aguantar un finde de fiesta de fondo." },
   ];
 
   return (
@@ -419,23 +419,23 @@ function Info() {
 
           {/* INFORMACION */}
           <div className="panel-ink" style={{ padding: 24, boxShadow: "6px 6px 0 var(--green)" }}>
-            <div className="sub" style={{ fontSize: 13, marginBottom: 16, borderBottom: "3px solid #000", paddingBottom: 8, color: "#000" }}>INFORMACION</div>
+            <div className="sub" style={{ fontSize: 13, marginBottom: 16, borderBottom: "3px solid #000", paddingBottom: 8, color: "#000" }}>INFORMACIÓN</div>
             <div className="mono" style={{ fontSize: 10, letterSpacing: "0.18em", fontWeight: 700, color: "#000", background: "var(--green)", display: "inline-block", padding: "2px 8px", border: "1.5px solid #000", marginBottom: 14 }}>
-              CUARTA EDICION!!
+              CUARTA EDICIÓN!!
             </div>
             <p className="mono" style={{ fontSize: 14, color: "#000", lineHeight: 1.7, margin: "0 0 22px", maxWidth: 860 }}>
               Este año nos toca a Laura, Isthar, Lara y Diego celebrar nuestro 30 cumpleaños y queremos invitaros a este precioso evento.<br></br>
               Queremos preparar un fin de semana lleno de sorpresas, no solo una fiesta. <br></br>Pasaremos un fin de semana de acampada por lo que
-              preparate para dormir en tienda o furgo. Por favor avisanos en cual para organizar los espacios y que todo el mundo pueda entrar con los coches!<br></br>
-              y si necesitas una tienda dinos y quizas podemos ayudarte!<br></br>
-              Para poder saber todo lo que necesitamos es muy importante que nos confirmes tu asistencia y si sera 1, 2 o los 3 dias. Asi podemos preparar comidas, desayunos, etc.
+              prepárate para dormir en tienda o furgo. Por favor avísanos en cuál para organizar los espacios y que todo el mundo pueda entrar con los coches!<br></br>
+              y si necesitas una tienda dínoslo y quizás podemos ayudarte!<br></br>
+              Para poder saber todo lo que necesitamos es muy importante que nos confirmes tu asistencia y si será 1, 2 o los 3 días. Así podemos preparar comidas, desayunos, etc.
             </p>
 
             <div className="mono" style={{ fontSize: 10, letterSpacing: "0.18em", fontWeight: 700, color: "var(--ink)", background: "#000", display: "inline-block", padding: "2px 8px", border: "1.5px solid #000", marginBottom: 12 }}>
-              VERMU CUÑAO
+              VERMÚ CUÑAO
             </div>
             <p className="mono" style={{ fontSize: 13, color: "#000", lineHeight: 1.6, margin: "0 0 10px", maxWidth: 860 }}>
-              Aqui si que os pedimos que traigais vuestros mejores pinchos, chistes y punteria porque la programacion sera la siguiente:
+              Aquí sí que os pedimos que traigáis vuestros mejores pinchos, chistes y puntería porque la programación será la siguiente:
             </p>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
               {[
@@ -455,18 +455,27 @@ function Info() {
                 MERKADILLO
               </div>
               <p className="mono" style={{ fontSize: 13, color: "#000", lineHeight: 1.6, margin: 0, maxWidth: 860 }}>
-                Queremos organizar un merkadillo de ropa gratuito, por lo que trae ropa que tengas EN BUEN ESTADO de la que te quieras desprender y te lleves lo que mas te guste. <br></br>
-                Todo lo que sobre lo donaremos. Asi que trae ropa que quieras que otra persona disfrute!
+                Queremos organizar un merkadillo de ropa gratuito, por lo que trae ropa que tengas EN BUEN ESTADO de la que te quieras desprender y te lleves lo que más te guste. <br></br>
+                Todo lo que sobre lo donaremos. Así que trae ropa que quieras que otra persona disfrute!
+              </p>
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <div className="mono" style={{ fontSize: 10, letterSpacing: "0.18em", fontWeight: 700, color: "var(--ink)", background: "#000", display: "inline-block", padding: "2px 8px", border: "1.5px solid #000", marginBottom: 12 }}>
+                RUINA
+              </div>
+              <p className="mono" style={{ fontSize: 13, color: "#000", lineHeight: 1.6, margin: 0, maxWidth: 860 }}>
+                Programa en directo de la Ruina alrededor de una hoguera. Comentado por nuestros presentadores Lara y Nicolás. Piensa tu ruina y apúntate allí.
               </p>
             </div>
 
             <div style={{ marginTop: 20 }}>
               <div className="mono" style={{ fontSize: 10, letterSpacing: "0.18em", fontWeight: 700, color: "#000", background: "var(--green)", display: "inline-block", padding: "2px 8px", border: "1.5px solid #000", marginBottom: 12 }}>
-                APORTACION
+                APORTACIÓN
               </div>
               <p className="mono" style={{ fontSize: 13, color: "#000", lineHeight: 1.6, margin: 0, maxWidth: 860 }}>
-                Esta tradicion es posible gracias al prestamo de la finka. Por lo que hay que cuidarla y respetarla. <br></br>
-                Solo pedimos una aportacion de <span style={{ background: "var(--green)", color: "#000", fontWeight: 700, padding: "1px 6px", border: "1.5px solid #000", display: "inline-block", lineHeight: 1.4 }}>10€</span> para poder cubrir parte de los gastos de comida, bebida y poder dejar algo para el espacio. (trae efectivo).
+                Esta tradición es posible gracias al préstamo de la finka. Por lo que hay que cuidarla y respetarla. <br></br>
+                Solo pedimos una aportación de <span style={{ background: "var(--green)", color: "#000", fontWeight: 700, padding: "1px 6px", border: "1.5px solid #000", display: "inline-block", lineHeight: 1.4 }}>10€</span> para poder cubrir parte de los gastos de comida, bebida y poder dejar algo para el espacio. (trae efectivo).
               </p>
             </div>
           </div>

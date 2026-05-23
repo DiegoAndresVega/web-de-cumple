@@ -1,0 +1,6 @@
+/buzon.html      /buzon      301
+/gallibird.html  /gallibird  301
+/datos1312.html  /datos1312  301
+/buzon           /buzon.html     200
+/gallibird       /gallibird.html 200
+/datos1312       /datos1312.html 200

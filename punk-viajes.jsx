@@ -86,7 +86,7 @@ function FinkaKar() {
           </h2>
           <p className="mono" style={{ fontSize: 14, color: "#000", marginTop: 8, fontWeight: 700, maxWidth: 580 }}>
             PUBLICA TU COCHE Y COORDINA CON QUIEN NECESITE SITIO.<br/>
-            - CONDUCTOR:<br/>Los viajes tienen un ID, este se usa para editar el viaje. Editalo por favor cuando vayas llenando plazas. 
+            - CONDUCTOR:<br/>Los viajes tienen un ID, este se usa para editar el viaje. Edítalo por favor cuando vayas llenando plazas.
           </p>
 
           {/* Count + CTAs */}
@@ -127,7 +127,7 @@ function FinkaKar() {
             {!loading && !trips.length && (
               <div style={{ padding: 22, border: "3px dashed #000", color: "#000" }}>
                 <div className="sub" style={{ fontSize: 22 }}>NADA AUN</div>
-                <p className="mono" style={{ fontSize: 13, marginTop: 6, fontWeight: 700 }}>Se la primera en publicar.</p>
+                <p className="mono" style={{ fontSize: 13, marginTop: 6, fontWeight: 700 }}>Sé la primera en publicar.</p>
               </div>
             )}
           </div>
