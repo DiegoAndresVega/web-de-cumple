@@ -88,8 +88,8 @@ function Confirmar() {
               <select className="select" value={f.transporte} onChange={(e) => set("transporte", e.target.value)}>
                 <option value="coche-propio">Coche propio (con sitio)</option>
                 <option value="coche-lleno">Coche propio (sin sitio)</option>
-                <option value="furgo">Furgo </option>
-                <option value="otro-coche">Voy con alguien</option>
+                <option value="furgo">Llevo furgo</option>
+                <option value="otro-coche">En el coche de alguien</option>
                 <option value="necesito">Necesito sitio</option>
               </select>
             </div>
@@ -101,7 +101,7 @@ function Confirmar() {
           {/* Dormir */}
           <FRow label="DÓNDE DUERMES">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {[["tienda", "TIENDA"], ["furgo", "FURGO"], ["dia", "SOLO DÍA"], ["necesito", " NECESITO LUGAR"]].map(([k, lbl]) => (
+              {[["tienda", "TIENDA"], ["furgo", "LLEVO FURGO"], ["furgo-ajena", "EN LA FURGO DE ALGUIEN"], ["dia", "SOLO DÍA"], ["necesito", " NECESITO LUGAR"], ["otro", "OTRO"]].map(([k, lbl]) => (
                 <span key={k} className={`chip ${f.dormir === k ? "on" : ""}`} onClick={() => set("dormir", k)}>
                   {f.dormir === k ? "✓ " : ""}{lbl}
                 </span>
