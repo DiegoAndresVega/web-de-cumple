@@ -1,4 +1,4 @@
-// punk-app.jsx — root
+// app.jsx — root
 
 function App() {
   return (

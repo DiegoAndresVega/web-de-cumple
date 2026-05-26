@@ -141,8 +141,8 @@
     }
 
     const TRANSPORTES = {
-      "coche-propio": "Coche (con sitio)", "coche-lleno": "Coche (sin sitio)",
-      "furgo": "Llevo furgo", "otro-coche": "En el coche de alguien", "necesito": "Necesita sitio",
+      "coche": "Llevo coche", "coche-propio": "Llevo coche", "coche-lleno": "Llevo coche",
+      "furgo": "Llevo furgo", "otro-coche": "El vehículo de alguien", "necesito": "Necesita sitio",
     };
     const DORMIR = { "tienda":"Tienda","furgo":"Llevo furgo","furgo-ajena":"En la furgo de alguien","dia":"Solo dia","necesito":"Necesita lugar","otro":"Otro" };
 
@@ -304,6 +304,8 @@
       const vie      = rows.filter(r=>r.dias?.vie).length;
       const sab      = rows.filter(r=>r.dias?.sab).length;
       const dom      = rows.filter(r=>r.dias?.dom).length;
+      const furgos    = rows.filter(r=>r.transporte==="furgo"||r.dormir==="furgo").length;
+      const coches    = rows.filter(r=>["coche","coche-propio","coche-lleno"].includes(r.transporte)).length;
       const sinViaje  = rows.filter(r=>r.transporte==="necesito").length;
       const sinDormir = rows.filter(r=>r.dormir==="necesito").length;
       const dieta     = rows.filter(r=>r.dieta?.length>0||r.alergias).length;
@@ -322,7 +324,7 @@
         ),
 
         h("div",{className:"stats"},
-          [[rows.length,"Total"],[vie,"Vie 19"],[sab,"Sab 20"],[dom,"Dom 21"],[sinViaje,"Sin viaje"],[sinDormir,"Sin dormir"],[dieta,"Dieta especial"]].map(([n,lbl])=>
+          [[rows.length,"Total"],[vie,"Vie 19"],[sab,"Sab 20"],[dom,"Dom 21"],[furgos,"Furgos"],[coches,"Coches"],[sinViaje,"Sin viaje"],[sinDormir,"Sin dormir"],[dieta,"Dieta especial"]].map(([n,lbl])=>
             h("div",{className:"stat",key:lbl},
               h("div",{className:"stat-num"},loading?"—":n),
               h("div",{className:"stat-lbl"},lbl)

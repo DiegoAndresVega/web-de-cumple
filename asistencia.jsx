@@ -1,10 +1,10 @@
-// punk-asistencia.jsx — Confirmar asistencia, directo
+// asistencia.jsx — Confirmar asistencia, directo
 
 function Confirmar() {
   const empty = {
     nombre: "", contacto: "",
     dias: { vie: false, sab: false, dom: false },
-    transporte: "coche-propio",
+    transporte: "coche",
     dormir: "tienda",
     dieta: [],
     alergias: "",
@@ -86,10 +86,9 @@ function Confirmar() {
           <FRow label="CÓMO LLEGAS">
             <div className="field">
               <select className="select" value={f.transporte} onChange={(e) => set("transporte", e.target.value)}>
-                <option value="coche-propio">Coche propio (con sitio)</option>
-                <option value="coche-lleno">Coche propio (sin sitio)</option>
+                <option value="coche">Llevo coche</option>
                 <option value="furgo">Llevo furgo</option>
-                <option value="otro-coche">En el coche de alguien</option>
+                <option value="otro-coche">El vehículo de alguien</option>
                 <option value="necesito">Necesito sitio</option>
               </select>
             </div>

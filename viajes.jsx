@@ -1,4 +1,4 @@
-// punk-viajes.jsx — FinkaKar: tablón de coches compartidos (Firebase)
+// viajes.jsx — FinkaKar: tablón de coches compartidos (Firebase)
 
 function NumStepper({ value, min, max, onChange }) {
   const dec = () => { if (value > min) onChange(value - 1); };

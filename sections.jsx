@@ -1,4 +1,4 @@
-// punk-sections.jsx — Hero, Programa, Footer
+// sections.jsx — Hero, Programa, Footer
 
 const { useState, useEffect } = React;
 
