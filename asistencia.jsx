@@ -5,6 +5,7 @@ function Confirmar() {
     nombre: "", contacto: "",
     dias: { vie: false, sab: false, dom: false },
     transporte: "coche",
+    llegada: "",
     dormir: "tienda",
     dieta: [],
     alergias: "",
@@ -77,6 +78,17 @@ function Confirmar() {
               {[["vie", "VIE 19"], ["sab", "SÁB 20"], ["dom", "DOM 21"]].map(([k, lbl]) => (
                 <span key={k} className={`chip ${f.dias[k] ? "on" : ""}`} onClick={() => toggleDia(k)}>
                   {f.dias[k] ? "✓ " : ""}{lbl}
+                </span>
+              ))}
+            </div>
+          </FRow>
+
+          {/* Llegada */}
+          <FRow label="¿CUÁNDO LLEGAS?">
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[["antes-comer", "ANTES DE COMER"], ["despues-comer", "DESPUÉS DE COMER"]].map(([k, lbl]) => (
+                <span key={k} className={`chip ${f.llegada === k ? "on" : ""}`} onClick={() => set("llegada", f.llegada === k ? "" : k)}>
+                  {f.llegada === k ? "✓ " : ""}{lbl}
                 </span>
               ))}
             </div>

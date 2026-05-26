@@ -145,6 +145,7 @@
       "furgo": "Llevo furgo", "otro-coche": "El vehículo de alguien", "necesito": "Necesita sitio",
     };
     const DORMIR = { "tienda":"Tienda","furgo":"Llevo furgo","furgo-ajena":"En la furgo de alguien","dia":"Solo dia","necesito":"Necesita lugar","otro":"Otro" };
+    const LLEGADA = { "antes-comer":"Antes de comer","despues-comer":"Después de comer" };
 
     function fmt(ts) {
       if (!ts) return "-";
@@ -219,6 +220,13 @@
               [["vie","VIE 19"],["sab","SAB 20"],["dom","DOM 21"]].map(([k,l])=>
                 h("span",{key:k,className:"chip"+(f.dias?.[k]?" on":""),onClick:()=>toggleDia(k)},l)
               )
+            )
+          ),
+          h("div",{className:"field"},
+            h("label",null,"Llegada"),
+            h("select",{value:f.llegada||"",onChange:ev=>set("llegada",ev.target.value)},
+              h("option",{value:""},"—"),
+              Object.entries(LLEGADA).map(([k,v])=>h("option",{key:k,value:k},v))
             )
           ),
           h("div",{className:"modal-grid"},
@@ -310,7 +318,7 @@
       const sinDormir = rows.filter(r=>r.dormir==="necesito").length;
       const dieta     = rows.filter(r=>r.dieta?.length>0||r.alergias).length;
 
-      const cols = ["Fecha","Nombre","Contacto","Dias","Transporte","Duerme","Dieta / Alergias","Aporta","Notas",...(canEdit?[""]:[])] ;
+      const cols = ["Fecha","Nombre","Contacto","Dias","Llegada","Transporte","Duerme","Dieta / Alergias","Aporta","Notas",...(canEdit?[""]:[])] ;
 
       return h("div", null,
 
@@ -350,6 +358,7 @@
                         h("td",{className:"bold"},r.nombre||h("span",{className:"dim"},"—")),
                         h("td",null,r.contacto||h("span",{className:"dim"},"—")),
                         h("td",null,["vie","sab","dom"].filter(d=>r.dias?.[d]).map(d=>pill(d.toUpperCase(),"hi"))),
+                        h("td",{style:{whiteSpace:"nowrap"}},r.llegada?LLEGADA[r.llegada]||r.llegada:h("span",{className:"dim"},"—")),
                         h("td",{style:{whiteSpace:"nowrap"}},
                           r.transporte==="necesito"?h("span",{className:"pill red"},"NECESITA SITIO"):TRANSPORTES[r.transporte]||r.transporte||"—"
                         ),
