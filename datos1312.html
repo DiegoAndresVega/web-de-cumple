@@ -396,18 +396,29 @@
                 h("th",null,"FECHA"),
                 h("th",null,"NOMBRE"),
                 h("th",null,"ENLACE"),
+                h("th",null,"ESTADO"),
                 canEdit && h("th",null,""),
               )),
               h("tbody",null,
                 videos.length === 0
-                  ? h("tr",{className:"empty-row"},h("td",{colSpan:3},"Sin vídeos aún."))
+                  ? h("tr",{className:"empty-row"},h("td",{colSpan:canEdit?5:4},"Sin vídeos aún."))
                   : videos.map(v =>
                       h("tr",{key:v._key},
                         h("td",{className:"dim",style:{fontSize:11,whiteSpace:"nowrap"}},fmt(v.ts)),
                         h("td",{className:"bold"},v.nombre||"—"),
-                        h("td",null,h("a",{href:v.enlace,target:"_blank",rel:"noopener",style:{color:"var(--green)",wordBreak:"break-all"}},v.enlace)),
-                        canEdit && h("td",null,
-                          h("button",{className:"btn danger sm",onClick:()=>db().ref("videos/"+v._key).remove()},"BORRAR")
+                        h("td",null,h("a",{href:v.enlace,target:"_blank",rel:"noopener",style:{color:"#cbdf5a",wordBreak:"break-all"}},v.enlace)),
+                        h("td",null,
+                          v.approved
+                            ? h("span",{className:"pill hi"},"✓ PUBLICADO")
+                            : h("span",{className:"pill"},"PENDIENTE")
+                        ),
+                        canEdit && h("td",{style:{whiteSpace:"nowrap"}},
+                          h("button",{
+                            className: v.approved ? "btn sm" : "btn ghost sm",
+                            style: v.approved ? {background:"#cbdf5a",color:"#000"} : {},
+                            onClick: () => db().ref("videos/"+v._key).update({approved: !v.approved})
+                          }, v.approved ? "✓ APROBADO" : "APROBAR"),
+                          h("button",{className:"btn danger sm",style:{marginLeft:4},onClick:()=>db().ref("videos/"+v._key).remove()},"BORRAR")
                         ),
                       )
                     )

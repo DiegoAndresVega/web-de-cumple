@@ -195,10 +195,43 @@ function Hero() {
 /* ───────── CONQUIS ───────── */
 const CONQUIS_VIDEO = "https://www.youtube.com/embed/BU_khMBOR3U?si=aCvEhhfUGJkOcJul"; // ENLACE
 
+function toEmbed(url) {
+  if (!url) return null;
+  // already embed
+  if (url.includes("/embed/")) return url;
+  // youtu.be/ID
+  const short = url.match(/youtu\.be\/([A-Za-z0-9_-]+)/);
+  if (short) return `https://www.youtube.com/embed/${short[1]}`;
+  // youtube.com/watch?v=ID
+  const watch = url.match(/[?&]v=([A-Za-z0-9_-]+)/);
+  if (watch) return `https://www.youtube.com/embed/${watch[1]}`;
+  // vimeo.com/ID
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  // drive.google.com/file/d/ID/...
+  const drive = url.match(/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]+)/);
+  if (drive) return `https://drive.google.com/file/d/${drive[1]}/preview`;
+  return url;
+}
+
 function Conquis() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ nombre: "", enlace: "" });
   const [sent, setSent] = useState(false);
+  const [videos, setVideos] = useState([]);
+
+  useEffect(() => {
+    firebase.database().ref("videos").on("value", snap => {
+      const data = snap.val();
+      if (!data) { setVideos([]); return; }
+      const list = Object.entries(data)
+        .map(([id, v]) => ({ id, ...v }))
+        .filter(v => v.approved === true)
+        .sort((a, b) => a.ts - b.ts);
+      setVideos(list);
+    });
+    return () => firebase.database().ref("videos").off();
+  }, []);
 
   const submit = (e) => {
     e.preventDefault();
@@ -244,6 +277,53 @@ function Conquis() {
               <div className="mono" style={{ marginTop: 8, fontSize: 11, color: "var(--ink-dim)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
                 ↳ Aquí irá el vídeo de instrucciones
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* PARTICIPANTES */}
+        <div style={{ marginTop: 32 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
+            <div className="display" style={{ fontSize: "clamp(22px, 4vw, 42px)", background: "#000", color: "var(--green)", padding: "6px 14px 10px", border: "3px solid #000", boxShadow: "5px 5px 0 var(--green)", lineHeight: 1 }}>
+              PARTICIPANTES
+            </div>
+            <div className="mono" style={{ fontSize: 11, color: "var(--ink-dim)", letterSpacing: "0.12em" }}>
+              {videos.length > 0 ? `${videos.length} vídeo${videos.length !== 1 ? "s" : ""}` : "—"}
+            </div>
+          </div>
+
+          {videos.length === 0 ? (
+            <div className="panel-black" style={{ padding: "32px 24px", textAlign: "center", borderColor: "var(--ink-dim)", boxShadow: "5px 5px 0 var(--ink-dim)" }}>
+              <div className="mono" style={{ fontSize: 12, color: "var(--ink-dim)", letterSpacing: "0.12em" }}>
+                Aún no hay vídeos. ¡Sé el primero en subir el tuyo!
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+              {videos.map(v => (
+                <div key={v.id} className="panel-black" style={{ padding: 0, overflow: "hidden", borderColor: "var(--green)", boxShadow: "5px 5px 0 var(--green)" }}>
+                  <div style={{ position: "relative", paddingBottom: "56.25%", height: 0, background: "#111" }}>
+                    {toEmbed(v.enlace) ? (
+                      <iframe
+                        src={toEmbed(v.enlace)}
+                        title={v.nombre}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                      />
+                    ) : (
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span className="mono" style={{ fontSize: 11, color: "var(--ink-dim)" }}>enlace no soportado</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ padding: "10px 12px", borderTop: "2px solid var(--green)" }}>
+                    <div className="mono" style={{ fontSize: 12, color: "var(--green)", letterSpacing: "0.08em", fontWeight: 700, textTransform: "uppercase" }}>
+                      {v.nombre}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
