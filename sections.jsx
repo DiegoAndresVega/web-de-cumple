@@ -202,6 +202,9 @@ function toEmbed(url) {
   // youtu.be/ID
   const short = url.match(/youtu\.be\/([A-Za-z0-9_-]+)/);
   if (short) return `https://www.youtube.com/embed/${short[1]}`;
+  // youtube.com/shorts/ID
+  const shorts = url.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]+)/);
+  if (shorts) return `https://www.youtube.com/embed/${shorts[1]}`;
   // youtube.com/watch?v=ID
   const watch = url.match(/[?&]v=([A-Za-z0-9_-]+)/);
   if (watch) return `https://www.youtube.com/embed/${watch[1]}`;
