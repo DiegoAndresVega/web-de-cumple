@@ -22,9 +22,45 @@ function NoteCard({ nota, index, isAdmin }) {
   const autor = nota.nombre?.trim() || "Alguien";
   const bg = nota.color === "green" ? "var(--green)" : "var(--ink)";
   const [confirm, setConfirm] = useState(false);
+  const [comentarios, setComentarios] = useState([]);
+  const [showComments, setShowComments] = useState(false);
+  const [comentario, setComentario] = useState("");
+  const [comNombre, setComNombre] = useState("");
+
+  useEffect(() => {
+    const ref = firebase.database().ref("comentarios/" + nota.id);
+    const handler = ref.on("value", (snap) => {
+      const val = snap.val();
+      if (val) {
+        const arr = Object.entries(val).map(([id, c]) => ({ ...c, id }));
+        arr.sort((a, b) => a.ts - b.ts);
+        setComentarios(arr);
+      } else {
+        setComentarios([]);
+      }
+    });
+    return () => ref.off("value", handler);
+  }, [nota.id]);
 
   const eliminar = () => {
     firebase.database().ref("buzon/" + nota.id).remove();
+    firebase.database().ref("comentarios/" + nota.id).remove();
+  };
+
+  const enviarComentario = (e) => {
+    e.preventDefault();
+    if (!comentario.trim()) return;
+    firebase.database().ref("comentarios/" + nota.id).push({
+      nombre: comNombre.trim(),
+      texto: comentario.trim(),
+      ts: Date.now(),
+    });
+    setComentario("");
+    setComNombre("");
+  };
+
+  const eliminarComentario = (cid) => {
+    firebase.database().ref("comentarios/" + nota.id + "/" + cid).remove();
   };
 
   return (
@@ -73,6 +109,89 @@ function NoteCard({ nota, index, isAdmin }) {
               </button>
         )}
       </div>
+
+      <button
+        className="mono"
+        onClick={() => setShowComments((v) => !v)}
+        style={{
+          background: "transparent",
+          border: "1.5px solid #000",
+          color: "#000",
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          padding: "6px 10px",
+          cursor: "pointer",
+          alignSelf: "flex-start",
+        }}
+      >
+        {showComments ? "▾ COMENTARIOS" : "▸ COMENTARIOS"} ({comentarios.length})
+      </button>
+
+      {showComments && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {comentarios.map((c) => (
+            <div
+              key={c.id}
+              className="mono"
+              style={{
+                background: "rgba(0,0,0,0.06)",
+                border: "1.5px solid #000",
+                padding: "7px 9px",
+                fontSize: 12,
+                lineHeight: 1.45,
+                wordBreak: "break-word",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 6,
+              }}
+            >
+              <span>
+                <strong>{c.nombre?.trim() || "Anónimo/a"}:</strong> {c.texto}
+              </span>
+              {isAdmin && (
+                <button
+                  onClick={() => eliminarComentario(c.id)}
+                  title="Borrar comentario"
+                  style={{ background: "transparent", border: "none", color: "var(--red)", fontWeight: 700, cursor: "pointer", fontSize: 13, lineHeight: 1, padding: 0 }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+
+          <form onSubmit={enviarComentario} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <input
+              type="text"
+              placeholder="nombre (opcional)"
+              value={comNombre}
+              onChange={(e) => setComNombre(e.target.value)}
+              className="mono"
+              style={{ border: "1.5px solid #000", background: "#fff", color: "#000", padding: "6px 9px", fontSize: 12 }}
+            />
+            <div style={{ display: "flex", gap: 6 }}>
+              <input
+                type="text"
+                placeholder="Escribe un comentario..."
+                value={comentario}
+                onChange={(e) => setComentario(e.target.value)}
+                className="mono"
+                style={{ flex: 1, border: "1.5px solid #000", background: "#fff", color: "#000", padding: "6px 9px", fontSize: 12 }}
+              />
+              <button
+                type="submit"
+                className="mono"
+                style={{ background: "#000", color: "var(--green)", border: "1.5px solid #000", fontWeight: 700, padding: "6px 12px", cursor: "pointer", fontSize: 12 }}
+              >
+                ♡
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

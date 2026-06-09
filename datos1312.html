@@ -326,9 +326,12 @@
           h("div",null,
             h("h1",null,"Finkafest IV — Confirmaciones"),
           ),
-          canEdit
-            ? h("button",{className:"btn exit",onClick:()=>{setCanEdit(false);setConfirmDel(null);}},"SALIR DE EDICION")
-            : h("button",{className:"btn ghost",onClick:()=>setShowPw(true)},"EDITAR"),
+          h("div",{style:{display:"flex",gap:8}},
+            h("a",{className:"btn ghost",href:"index.html"},"← INICIO"),
+            canEdit
+              ? h("button",{className:"btn exit",onClick:()=>{setCanEdit(false);setConfirmDel(null);}},"SALIR DE EDICION")
+              : h("button",{className:"btn ghost",onClick:()=>setShowPw(true)},"EDITAR"),
+          ),
         ),
 
         h("div",{className:"stats"},

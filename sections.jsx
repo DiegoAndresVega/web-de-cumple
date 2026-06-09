@@ -392,8 +392,8 @@ function Programa() {
       key: "vie", title: "VIE 19",
       blocks: [
         ["-", "Llegadas + montar"],
-        ["-", "actividades"],
-        ["-", "Cena compartida"],
+        ["-", "Espectaculos aereos: Telas - Trapecio"],
+        ["-", "Cena compartida (trae algo para compartir)"],
         ["-", "Fogata" ],
         ["-", "JAM" ],
       ],
