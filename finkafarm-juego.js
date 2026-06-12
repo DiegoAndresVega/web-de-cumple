@@ -10,8 +10,8 @@
 (function () {
   const G = window.Granja;
   const { COLS, FILAS, CUADRICULA, TERRENO_DEFECTO, OBJETOS_DEFECTO, JUGADOR_DEFECTO,
-    tamanoObjeto, OBJETOS_SOLIDOS, TIPOS_OBJETO, SPRITES, PALETA, dibujarSprite, dibujarSombra, hash2,
-    crearSpritesJugador } = G;
+    tamanoObjeto, OBJETOS_SOLIDOS, CATEGORIAS_OBJETO, SPRITES, PALETA, dibujarSprite, dibujarSombra, hash2,
+    crearSpritesJugador, PEINADOS } = G;
 
   const STORAGE_KEY = "granja-mapa-v1";
   const PX = 16; // píxeles de arte por celda
@@ -23,7 +23,6 @@
   const ctx = canvas.getContext("2d");
   const elEstado = document.getElementById("estado");
   const elEditorPanel = document.getElementById("editor-panel");
-  const elEditorToggle = document.getElementById("editor-toggle");
   const elJson = document.getElementById("editor-json");
 
   // ── mapa compartido: Firebase es la fuente de verdad del mundo online ──
@@ -52,6 +51,7 @@
 
   let timerGuardado = null;
   function guardarMapa() {
+    sincronizarFaunaMapa();
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mapa)); } catch (e) {}
     if (!refMapa) return;
     clearTimeout(timerGuardado);
@@ -73,6 +73,7 @@
     mapa = { objetos: d.objetos || [], terreno: d.terreno || {} };
     recalcularOcupacion();
     reconstruirMundo();
+    sincronizarFaunaMapa();
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mapa)); } catch (e) {}
   }
   if (refMapa) {
@@ -317,6 +318,9 @@
 
   const camara = { x: jugador.x, y: jugador.y, zoom: 2.5, libre: false };
   const raton = { x: -1, y: -1 };
+  // en móvil la cámara va fijada al personaje mientras se juega; solo el
+  // editor (navegación con dos dedos) puede soltarla
+  const esMovil = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
 
   function tamCelda() { return PX * camara.zoom; }
   function celdaAPantalla(col, fila) {
@@ -356,7 +360,6 @@
     if (e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")) return;
     teclas.add(e.key.toLowerCase());
     if (e.key === "Tab") { e.preventDefault(); camara.libre = !camara.libre; }
-    if (e.key.toLowerCase() === "e") toggleEditor();
   });
   window.addEventListener("keyup", (e) => teclas.delete(e.key.toLowerCase()));
 
@@ -405,6 +408,7 @@
     if (!dx && !dy && joy.activo) { dx = joy.vx; dy = joy.vy; }
 
     if (dx || dy) {
+      ocultarFicha(); // la ficha de especie se va en cuanto te mueves
       const len = Math.hypot(dx, dy);
       dx = (dx / len) * VELOCIDAD * dt;
       dy = (dy / len) * VELOCIDAD * dt;
@@ -477,6 +481,11 @@
     } else if (pincel.tipo === "borrar") {
       arrastre = { tipo: "borrar" };
       borrarEn(col, fila);
+    } else if (pincel.tipo === "expulsar") {
+      const cerca = personaEn(colF, filaF);
+      if (cerca && confirm(`¿Sacar a "${cerca.nombre}" de la finka? Se le desconectará, pero podrá volver a entrar.`)) {
+        expulsarPersona(cerca.id);
+      }
     }
   }
   function continuarAccionEditor(e) {
@@ -505,24 +514,37 @@
 
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
-  // pellizco táctil para zoom: seguimos los punteros activos en el canvas
+  // pellizco táctil: dos dedos hacen zoom y a la vez arrastran la cámara
+  // (en el editor móvil es la única manera de desplazarse por el mapa)
   const punteros = new Map();
-  let pellizco = null; // { dist0, zoom0 }
+  let pellizco = null; // { dist0, zoom0, cx, cy }
   function distPunteros() {
     const [a, b] = [...punteros.values()];
     return Math.hypot(a.x - b.x, a.y - b.y);
   }
+  function centroPunteros() {
+    const [a, b] = [...punteros.values()];
+    return [(a.x + b.x) / 2, (a.y + b.y) / 2];
+  }
 
+  let toque = null; // candidato a "click corto" para la ficha de especies
   canvas.addEventListener("pointerdown", (e) => {
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    detectarToquePino(e);
+    if (modo === "jugar" && punteros.size === 1) {
+      toque = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId, multi: false };
+    }
     if (punteros.size === 2) {
+      if (toque) toque.multi = true;
       arrastre = null;
-      pellizco = { dist0: distPunteros(), zoom0: camara.zoom };
+      const [cx, cy] = centroPunteros();
+      pellizco = { dist0: distPunteros(), zoom0: camara.zoom, cx, cy };
       canvas.classList.remove("arrastrando");
       return;
     }
     if (e.button === 2 || (modo === "jugar" && e.button === 0)) {
+      if (esMovil && modo === "jugar") return; // móvil: la cámara no se arrastra jugando
       arrastre = { tipo: "camara", x: e.clientX, y: e.clientY };
       canvas.classList.add("arrastrando");
       return;
@@ -536,6 +558,14 @@
       const d = distPunteros();
       if (d > 0 && pellizco.dist0 > 0) {
         camara.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, pellizco.zoom0 * (d / pellizco.dist0)));
+      }
+      if (!(esMovil && modo === "jugar")) { // jugando en móvil: solo zoom, sin soltar la cámara
+        const [cx, cy] = centroPunteros();
+        const tam = tamCelda();
+        camara.x -= (cx - pellizco.cx) / tam;
+        camara.y -= (cy - pellizco.cy) / tam;
+        pellizco.cx = cx; pellizco.cy = cy;
+        camara.libre = true;
       }
       return;
     }
@@ -553,6 +583,14 @@
   function soltarPuntero(e) {
     punteros.delete(e.pointerId);
     if (punteros.size < 2) pellizco = null;
+    // click corto sin arrastre en modo juego → ficha de la especie tocada
+    if (toque && e.pointerId === toque.id) {
+      if (!toque.multi && modo === "jugar" && performance.now() - toque.t < 400 &&
+          Math.hypot(e.clientX - toque.x, e.clientY - toque.y) < 8) {
+        fichaEnPantalla(e.clientX, e.clientY);
+      }
+      toque = null;
+    }
     if (arrastre && arrastre.tipo === "objeto") { recalcularOcupacion(); guardarMapa(); }
     if (arrastre && (arrastre.tipo === "terreno" || arrastre.tipo === "borrar")) guardarMapa();
     arrastre = null;
@@ -570,7 +608,13 @@
     manzano: "MANZANO", peral: "PERAL", cerezo: "CEREZO", ciruelo: "CIRUELO",
     endrino: "ENDRINO", pistacho: "PISTACHO", nogal: "NOGAL", almendro: "ALMENDRO",
     castano: "CASTAÑO", arandano: "ARÁNDANO", lavanda: "LAVANDA", fresa: "FRESA",
-    flores: "FLORES", gallina: "GALLINA", oveja_negra: "OVEJA",
+    flores: "FLORES", retama: "RETAMA", espino: "ESPINO", zarza: "ZARZA",
+    amapola: "AMAPOLA", tomillo: "TOMILLO", romero: "ROMERO",
+    gallina: "GALLINA", oveja_negra: "OVEJA", liebre: "LIEBRE",
+    zorro: "ZORRO", gineta: "GINETA", comadreja: "COMADREJA",
+    gorrion: "GORRIÓN", urraca: "URRACA", abubilla: "ABUBILLA", ciguena: "CIGÜEÑA",
+    perdiz: "PERDIZ", lagartija: "LAGARTIJA", lagarto: "LAGARTO", culebra: "CULEBRA",
+    rana: "RANA", sapo: "SAPO", libelula: "LIBÉLULA", oruga: "ORUGA", mariquita: "MARIQUITA",
   };
 
   const botones = [];
@@ -589,20 +633,47 @@
 
   const btnMover = document.getElementById("btn-mover");
   const btnBorrar = document.getElementById("btn-borrar");
-  botones.push(btnMover, btnBorrar);
+  const btnExpulsar = document.getElementById("btn-expulsar");
+  botones.push(btnMover, btnBorrar, btnExpulsar);
   btnMover.addEventListener("click", () => seleccionarPincel("mover", null, btnMover));
   btnBorrar.addEventListener("click", () => seleccionarPincel("borrar", null, btnBorrar));
+  btnExpulsar.addEventListener("click", () => seleccionarPincel("expulsar", null, btnExpulsar));
   btnMover.classList.add("activo");
 
-  const elTerreno = document.getElementById("pinceles-terreno");
-  const elObjetos = document.getElementById("pinceles-objetos");
-  for (const [tipo, etiqueta] of TIPOS_TERRENO) {
-    const b = crearBoton(etiqueta, () => seleccionarPincel("terreno", tipo, b));
-    elTerreno.appendChild(b);
+  // pinceles agrupados en pestañas: solo se despliega la categoría pulsada,
+  // así el panel no enseña todos los assets a la vez
+  const elPestanas = document.getElementById("pestanas-editor");
+  const elContenido = document.getElementById("contenido-categorias");
+  const pestanas = []; // [botónPestaña, filaDePinceles]
+  function crearCategoria(titulo, construir) {
+    const fila = document.createElement("div");
+    fila.className = "fila pinceles";
+    fila.style.display = "none";
+    construir(fila);
+    elContenido.appendChild(fila);
+    const tab = document.createElement("button");
+    tab.textContent = titulo;
+    tab.addEventListener("click", () => {
+      const estabaAbierta = fila.style.display !== "none";
+      for (const [t, fl] of pestanas) { fl.style.display = "none"; t.classList.remove("activo"); }
+      if (!estabaAbierta) { fila.style.display = "flex"; tab.classList.add("activo"); }
+    });
+    pestanas.push([tab, fila]);
+    elPestanas.appendChild(tab);
   }
-  for (const tipo of TIPOS_OBJETO) {
-    const b = crearBoton(ETIQUETAS_OBJETO[tipo] || tipo.toUpperCase(), () => seleccionarPincel("objeto", tipo, b));
-    elObjetos.appendChild(b);
+  crearCategoria("TERRENO", (fila) => {
+    for (const [tipo, etiqueta] of TIPOS_TERRENO) {
+      const b = crearBoton(etiqueta, () => seleccionarPincel("terreno", tipo, b));
+      fila.appendChild(b);
+    }
+  });
+  for (const [titulo, tipos] of CATEGORIAS_OBJETO) {
+    crearCategoria(titulo, (fila) => {
+      for (const tipo of tipos) {
+        const b = crearBoton(ETIQUETAS_OBJETO[tipo] || tipo.toUpperCase(), () => seleccionarPincel("objeto", tipo, b));
+        fila.appendChild(b);
+      }
+    });
   }
 
   document.getElementById("btn-exportar").addEventListener("click", () => {
@@ -672,9 +743,10 @@
   function abrirCerrarEditor() {
     modo = modo === "editor" ? "jugar" : "editor";
     elEditorPanel.classList.toggle("activo", modo === "editor");
-    elEditorToggle.classList.toggle("activo", modo === "editor");
+    document.body.classList.toggle("modo-editor", modo === "editor");
     document.getElementById("chat-bar").style.display = modo === "editor" ? "none" : "flex";
     if (modo === "editor") camara.libre = true;
+    else if (esMovil) camara.libre = false; // al cerrar el editor, volver al personaje
   }
   function toggleEditor() {
     if (modo !== "editor" && !editorDesbloqueado) {
@@ -684,12 +756,43 @@
     }
     abrirCerrarEditor();
   }
-  elEditorToggle.addEventListener("click", toggleEditor);
+  document.getElementById("btn-cerrar-editor").addEventListener("click", toggleEditor);
+
+  // ── entrada secreta al editor ──────────────────────────────────────────
+  // No hay botón ni tecla: se entra con doble click/toque sobre el pino del
+  // exterior en la celda (110,59), junto a la valla este. El doble toque
+  // abre el modal de contraseña (o el editor directamente si ya está
+  // desbloqueado en esta sesión).
+  const PINO_SECRETO = { col: 110, fila: 59 };
+  let ultimoToquePino = 0;
+  function esToqueEnPinoSecreto(x, y) {
+    const [colF, filaF] = pantallaACelda(x, y);
+    const fr = SPRITES.pino.frames[0];
+    const anchoC = fr.ancho / PX, altoC = fr.alto / PX; // tamaño del sprite en celdas
+    const cx = PINO_SECRETO.col + 0.5, base = PINO_SECRETO.fila + 1; // anclado abajo-centro
+    return Math.abs(colF - cx) <= anchoC / 2 + 0.3 &&
+      filaF >= base - altoC - 0.3 && filaF <= base + 0.3;
+  }
+  function detectarToquePino(e) {
+    if (modo !== "jugar" || punteros.size !== 1) return;
+    if (!esToqueEnPinoSecreto(e.clientX, e.clientY)) { ultimoToquePino = 0; return; }
+    const ahora = performance.now();
+    if (ahora - ultimoToquePino < 600) { ultimoToquePino = 0; toggleEditor(); }
+    else ultimoToquePino = ahora;
+  }
 
   // ── personajes online ──────────────────────────────────────────────────
   // Cada visitante es un personaje con nombre y aspecto aleatorio (único
-  // entre los conectados). Presencia en finkafarm/online/<clienteId>;
-  // onDisconnect la borra al salir. Los demás se interpolan suavemente.
+  // entre los conectados). Presencia en finkafarm/online/<idJugador>.
+  //
+  // Identidad: idJugador persiste en localStorage → un solo personaje por
+  // navegador aunque se abran varias pestañas; sesionId es único por pestaña
+  // y la última que entra se queda con el personaje (las demás pasan a
+  // espera con un aviso). La presencia se retira al ocultar/cerrar la
+  // página (visibilitychange/pagehide) además del onDisconnect del
+  // servidor, y siempre se escribe con set() completo: así no quedan nodos
+  // a medias (los famosos "?"). Las presencias sin latido reciente no se
+  // dibujan y las muy viejas las purga cualquier cliente.
   const PIELES = [
     "#efc296", "#d8a87c", "#a8744a", "#7a4f2c", // tonos humanos
     "#7ddb6a", "#f0a8c0", "#7ab8f0", "#c89af0", // verde, rosa, azul, lila
@@ -708,7 +811,7 @@
   }
   function aspectoAleatorio() {
     const el = (a) => a[Math.floor(Math.random() * a.length)];
-    return { piel: el(PIELES), pelo: el(PELOS), camisa: el(CAMISAS), pantalon: el(PANTALONES) };
+    return { piel: el(PIELES), pelo: el(PELOS), camisa: el(CAMISAS), pantalon: el(PANTALONES), peinado: el(PEINADOS) };
   }
   function coloresDeAspecto(a) {
     return {
@@ -719,43 +822,142 @@
   }
 
   let miAspecto = aspectoAleatorio();
-  let spritesYo = crearSpritesJugador(coloresDeAspecto(miAspecto));
+  let spritesYo = crearSpritesJugador(coloresDeAspecto(miAspecto), miAspecto.peinado);
   let miNombre = "";
   let miMensaje = null;
+
+  function idAleatorio(prefijo) {
+    return `${prefijo}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+  const sesionId = idAleatorio("s");
+  let idJugador = null;
+  try {
+    idJugador = localStorage.getItem("finkafarm-id");
+    if (!idJugador) { idJugador = idAleatorio("j"); localStorage.setItem("finkafarm-id", idJugador); }
+  } catch (e) {}
+  if (!idJugador) idJugador = idAleatorio("j");
+
   let refYo = null;
   let refOnline = null;
+  let presenciaActiva = false; // esta pestaña es la dueña del personaje
+  let offsetServidor = 0;      // desfase reloj local ↔ servidor, para caducar presencias
   try {
-    if (window.firebase && firebase.database) refOnline = firebase.database().ref("finkafarm/online");
+    if (window.firebase && firebase.database) {
+      refOnline = firebase.database().ref("finkafarm/online");
+      firebase.database().ref(".info/serverTimeOffset").on("value", (s) => { offsetServidor = s.val() || 0; });
+    }
   } catch (e) {}
   const otros = new Map(); // id → estado del jugador remoto (+pos interpolada)
+
+  const INACTIVO_MS = 90000;  // sin latido (cada 30 s) en este tiempo → no se dibuja
+  const ZOMBI_MS = 150000;    // más viejo todavía → cualquier cliente lo borra de la base
+
+  function datosPresencia() {
+    return {
+      nombre: miNombre, aspecto: miAspecto, sesion: sesionId,
+      x: +jugador.x.toFixed(2), y: +jugador.y.toFixed(2),
+      dir: jugador.dir, espejo: jugador.espejo, moviendo: jugador.moviendo,
+      mensaje: miMensaje || null,
+      ts: firebase.database.ServerValue.TIMESTAMP,
+    };
+  }
+  // set() completo siempre: un nodo de presencia existe entero o no existe
+  function publicarPresencia() {
+    if (!refYo || !miNombre) return;
+    refYo.onDisconnect().remove();
+    refYo.set(datosPresencia()).catch(() => {});
+    ultimoEnviado = "";
+  }
+  function retirarPresencia() {
+    if (!refYo) return;
+    try { refYo.remove(); } catch (e) {}
+  }
+
+  // ── aviso de expulsión / sesión en otra pestaña ──
+  const elModalAviso = document.getElementById("modal-aviso");
+  const elAvisoTitulo = document.getElementById("aviso-titulo");
+  const elAvisoTexto = document.getElementById("aviso-texto");
+  const btnAvisoVolver = document.getElementById("btn-aviso-volver");
+
+  function pasarAEspera(motivo) {
+    presenciaActiva = false;
+    if (motivo === "expulsado") {
+      retirarPresencia();
+      elAvisoTitulo.textContent = "TE HAN SACADO DE LA FINKA";
+      elAvisoTexto.textContent = "La organización te ha desconectado. Puedes volver a entrar cuando quieras… portándote bien.";
+      btnAvisoVolver.textContent = "VOLVER A ENTRAR →";
+    } else {
+      // el personaje se lo ha quedado otra pestaña: NO borrar el nodo, ya no es nuestro
+      elAvisoTitulo.textContent = "FINKA ABIERTA EN OTRA PESTAÑA";
+      elAvisoTexto.textContent = "Has abierto el juego en otra pestaña o ventana y tu personaje se ha ido allí.";
+      btnAvisoVolver.textContent = "JUGAR AQUÍ →";
+    }
+    elModalAviso.classList.add("activo");
+  }
+  btnAvisoVolver.addEventListener("click", () => {
+    elModalAviso.classList.remove("activo");
+    presenciaActiva = true;
+    publicarPresencia();
+  });
 
   function entrarOnline(nombre) {
     miNombre = nombre;
     if (!refOnline) return;
+    refYo = refOnline.child(idJugador);
+    presenciaActiva = true;
+
     refOnline.once("value").then((snap) => {
       // aspecto único entre los conectados
       const conectados = snap.val() || {};
-      const usados = new Set(Object.values(conectados).map((p) => JSON.stringify(p.aspecto || {})));
+      const usados = new Set(Object.keys(conectados).filter((id) => id !== idJugador)
+        .map((id) => JSON.stringify(conectados[id].aspecto || {})));
       let intentos = 0;
       while (usados.has(JSON.stringify(miAspecto)) && intentos++ < 40) miAspecto = aspectoAleatorio();
-      spritesYo = crearSpritesJugador(coloresDeAspecto(miAspecto));
+      spritesYo = crearSpritesJugador(coloresDeAspecto(miAspecto), miAspecto.peinado);
+      publicarPresencia();
+    }).catch(() => publicarPresencia());
 
-      refYo = refOnline.child(clienteId);
-      refYo.onDisconnect().remove();
-      refYo.set({
-        nombre, aspecto: miAspecto,
-        x: +jugador.x.toFixed(2), y: +jugador.y.toFixed(2),
-        dir: jugador.dir, espejo: jugador.espejo, moviendo: false,
-        ts: firebase.database.ServerValue.TIMESTAMP,
+    // tras una reconexión el servidor pudo habernos borrado (onDisconnect):
+    // volver a publicar el estado completo y re-armar el onDisconnect
+    try {
+      firebase.database().ref(".info/connected").on("value", (s) => {
+        if (s.val() && presenciaActiva && !document.hidden) publicarPresencia();
       });
-      setInterval(sincronizarYo, 150);
-      setInterval(() => refYo.update({ ts: firebase.database.ServerValue.TIMESTAMP }).catch(() => {}), 30000);
-    }).catch(() => {});
+    } catch (e) {}
+
+    // vigilar nuestro propio nodo: expulsiones, robo de sesión por otra
+    // pestaña, o borrado por error (purga de zombis) → reaparecer entero
+    refYo.on("value", (snap) => {
+      if (!presenciaActiva) return;
+      const v = snap.val();
+      if (!v) { if (!document.hidden) publicarPresencia(); return; }
+      if (v.expulsado) { pasarAEspera("expulsado"); return; }
+      if (v.sesion && v.sesion !== sesionId) pasarAEspera("otraPestana");
+    });
+
+    setInterval(sincronizarYo, 150);
+    setInterval(() => {
+      if (presenciaActiva && refYo && !document.hidden) {
+        refYo.update({ ts: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
+      }
+    }, 30000);
   }
+
+  // al ocultar la página (cambiar de app en el móvil, minimizar, cerrar)
+  // el personaje se retira al instante; al volver, reaparece donde estaba.
+  // onDisconnect queda como red de seguridad, no como único mecanismo.
+  document.addEventListener("visibilitychange", () => {
+    if (!presenciaActiva || !refYo) return;
+    if (document.hidden) retirarPresencia();
+    else publicarPresencia();
+  });
+  window.addEventListener("pagehide", () => {
+    if (presenciaActiva) retirarPresencia();
+  });
 
   let ultimoEnviado = "";
   function sincronizarYo() {
-    if (!refYo) return;
+    if (!refYo || !presenciaActiva || document.hidden) return;
     const datos = {
       x: +jugador.x.toFixed(2), y: +jugador.y.toFixed(2),
       dir: jugador.dir, espejo: jugador.espejo, moviendo: jugador.moviendo,
@@ -769,23 +971,407 @@
   if (refOnline) {
     refOnline.on("value", (snap) => {
       const v = snap.val() || {};
+      const ahora = Date.now() + offsetServidor;
       for (const id of Object.keys(v)) {
-        if (id === clienteId) continue;
+        if (id === idJugador) continue;
         const p = v[id];
+        // nodos a medias (sin nombre/aspecto), expulsados o sin latido
+        // reciente: no se dibujan; los muy viejos se purgan de la base
+        const incompleto = !p || !p.nombre || !p.aspecto;
+        const inactivo = !p || !p.ts || ahora - p.ts > INACTIVO_MS;
+        if (incompleto || inactivo || p.expulsado) {
+          otros.delete(id);
+          if (incompleto || !p.ts || ahora - p.ts > ZOMBI_MS) refOnline.child(id).remove().catch(() => {});
+          continue;
+        }
         let o = otros.get(id);
         if (!o) { o = { rx: p.x, ry: p.y }; otros.set(id, o); }
         const aspectoJson = JSON.stringify(p.aspecto || {});
         if (o.aspectoJson !== aspectoJson) {
           o.aspectoJson = aspectoJson;
-          o.sprites = crearSpritesJugador(coloresDeAspecto(p.aspecto || aspectoAleatorio()));
+          const asp = p.aspecto || aspectoAleatorio();
+          o.sprites = crearSpritesJugador(coloresDeAspecto(asp), asp.peinado);
         }
         o.nombre = p.nombre || "?";
         o.x = p.x; o.y = p.y;
+        o.ts = p.ts;
         o.dir = p.dir || "abajo"; o.espejo = !!p.espejo; o.moviendo = !!p.moviendo;
         o.mensaje = p.mensaje || null;
       }
       for (const id of [...otros.keys()]) if (!v[id]) otros.delete(id);
     });
+
+    // barrido periódico por si nadie escribe en la base (p. ej. solo queda
+    // un zombi): caducar y purgar presencias sin latido
+    setInterval(() => {
+      const ahora = Date.now() + offsetServidor;
+      for (const [id, o] of [...otros]) {
+        if (o.ts && ahora - o.ts > INACTIVO_MS) {
+          otros.delete(id);
+          refOnline.child(id).remove().catch(() => {});
+        }
+      }
+    }, 20000);
+  }
+
+  // ── expulsar desde el editor ──
+  function personaEn(colF, filaF) {
+    let mejor = null, mejorDist = 0.75; // radio de click en celdas
+    for (const [id, o] of otros) {
+      const d = Math.hypot(o.rx - colF, o.ry - filaF);
+      if (d < mejorDist) { mejorDist = d; mejor = { id, nombre: o.nombre }; }
+    }
+    return mejor;
+  }
+  function expulsarPersona(id) {
+    if (!refOnline) return;
+    // la marca avisa a su cliente (que se retira y ve el aviso); el borrado
+    // diferido limpia el nodo aunque ese cliente ya no responda
+    refOnline.child(id).update({ expulsado: true }).catch(() => {});
+    setTimeout(() => refOnline.child(id).remove().catch(() => {}), 1500);
+    otros.delete(id);
+  }
+
+  // ── fichas de especies: nombre común + nombre científico ──────────────
+  const FICHAS = {
+    pino: ["Pino silvestre", "Pinus sylvestris", "🌲"],
+    roble: ["Roble melojo", "Quercus pyrenaica", "🌳"],
+    encina: ["Encina", "Quercus ilex", "🌳"],
+    olivo: ["Olivo", "Olea europaea", "🫒"],
+    manzano: ["Manzano", "Malus domestica", "🍎"],
+    peral: ["Peral", "Pyrus communis", "🍐"],
+    cerezo: ["Cerezo", "Prunus avium", "🍒"],
+    ciruelo: ["Ciruelo", "Prunus domestica", "🌳"],
+    endrino: ["Endrino", "Prunus spinosa", "🌿"],
+    pistacho: ["Pistacho", "Pistacia vera", "🌳"],
+    nogal: ["Nogal", "Juglans regia", "🌳"],
+    almendro: ["Almendro", "Prunus dulcis", "🌸"],
+    castano: ["Castaño", "Castanea sativa", "🌰"],
+    arandano: ["Arándano", "Vaccinium corymbosum", "🫐"],
+    lavanda: ["Lavanda", "Lavandula angustifolia", "💜"],
+    fresa: ["Fresa", "Fragaria × ananassa", "🍓"],
+    flores: ["Flores silvestres", "varias especies", "🌼"],
+    retama: ["Retama escoba", "Cytisus scoparius", "🌼"],
+    espino: ["Espino albar", "Crataegus monogyna", "🌳"],
+    zarza: ["Zarzamora", "Rubus ulmifolius", "🫐"],
+    amapola: ["Amapola", "Papaver rhoeas", "🌺"],
+    tomillo: ["Tomillo salsero", "Thymus zygis", "🌿"],
+    romero: ["Romero", "Salvia rosmarinus", "🌿"],
+    gallina: ["Gallina", "Gallus gallus domesticus", "🐔"],
+    oveja_negra: ["Oveja negra", "Ovis aries", "🐑"],
+    gorrion: ["Gorrión común", "Passer domesticus", "🐦"],
+    urraca: ["Urraca", "Pica pica", "🐦‍⬛"],
+    abubilla: ["Abubilla", "Upupa epops", "🐦"],
+    ciguena: ["Cigüeña blanca", "Ciconia ciconia", "🦢"],
+    perdiz: ["Perdiz roja", "Alectoris rufa", "🐦"],
+    lagartija: ["Lagartija roquera", "Podarcis muralis", "🦎"],
+    lagarto: ["Lagarto ocelado", "Timon lepidus", "🦎"],
+    culebra: ["Culebra de escalera", "Zamenis scalaris", "🐍"],
+    rana: ["Rana común", "Pelophylax perezi", "🐸"],
+    sapo: ["Sapo común", "Bufo spinosus", "🐸"],
+    libelula: ["Libélula emperador", "Anax imperator", "🪰"],
+    oruga: ["Oruga de la col", "Pieris brassicae (larva)", "🐛"],
+    mariquita: ["Mariquita de siete puntos", "Coccinella septempunctata", "🐞"],
+    liebre: ["Liebre ibérica", "Lepus granatensis", "🐇"],
+    zorro: ["Zorro rojo", "Vulpes vulpes", "🦊"],
+    gineta: ["Gineta", "Genetta genetta", "🐾"],
+    comadreja: ["Comadreja", "Mustela nivalis", "🐾"],
+  };
+
+  const elFicha = document.getElementById("ficha");
+  let timerFicha = null;
+  let fichaVisible = false;
+  function mostrarFicha(tipo) {
+    const fi = FICHAS[tipo];
+    if (!fi) return;
+    document.getElementById("ficha-icono").textContent = fi[2];
+    document.getElementById("ficha-nombre").textContent = fi[0];
+    document.getElementById("ficha-latin").textContent = fi[1];
+    elFicha.classList.add("activo");
+    fichaVisible = true;
+    // se va sola a los 5 s (o antes, si el personaje se mueve)
+    clearTimeout(timerFicha);
+    timerFicha = setTimeout(ocultarFicha, 5000);
+  }
+  function ocultarFicha() {
+    if (!fichaVisible) return;
+    clearTimeout(timerFicha);
+    elFicha.classList.remove("activo");
+    fichaVisible = false;
+  }
+  elFicha.addEventListener("click", ocultarFicha);
+  // la misma ventanita sirve para leer los letreros de la peña
+  function mostrarLetrero(obj) {
+    document.getElementById("ficha-icono").textContent = "🪧";
+    document.getElementById("ficha-nombre").textContent = obj.texto || "(sin texto)";
+    document.getElementById("ficha-latin").textContent = obj.nombre ? "letrero de " + obj.nombre : "letrero anónimo";
+    elFicha.classList.add("activo");
+    fichaVisible = true;
+    clearTimeout(timerFicha);
+    timerFicha = setTimeout(ocultarFicha, 5000);
+  }
+
+  // ── fauna: aves, reptiles, anfibios e insectos de la zona, a su bola ───
+  // Cada bicho tiene una querencia (cx, cy) y un radio: alterna pausas con
+  // paseos a puntos aleatorios alrededor de ella, siempre DENTRO de la
+  // finca (nunca al arbolado exterior). Hay bichos anclados a un objeto del
+  // mapa colocado con el editor (rondan ese punto y no se van), y bichos
+  // libres ESPORÁDICOS: cada ~10 s se tira el dado por especie (prob =
+  // rareza, max = tope simultáneo) y los que salen viven `vida` segundos y
+  // luego se marchan (las aves alzan el vuelo, el resto se escabulle).
+  // radio = radio de paseo; agua = vive junto al agua; alturaMax = vuelo.
+  const ESPECIES_FAUNA = {
+    gorrion: { max: 3, prob: 0.50, vida: [40, 90], modo: "volador", vel: 7, espera: [2, 7], radio: 60 },
+    urraca: { max: 2, prob: 0.30, vida: [30, 80], modo: "volador", vel: 8, espera: [3, 9], radio: 60 },
+    abubilla: { max: 1, prob: 0.12, vida: [25, 60], modo: "volador", vel: 6.5, espera: [4, 10], radio: 60 },
+    ciguena: { max: 1, prob: 0.10, vida: [30, 70], modo: "volador", vel: 5.5, espera: [6, 14], radio: 60 },
+    perdiz: { max: 2, prob: 0.20, vida: [30, 80], modo: "terrestre", vel: 2.4, espera: [2, 6], radio: 6 },
+    lagartija: { max: 2, prob: 0.40, vida: [30, 90], modo: "terrestre", vel: 3.6, espera: [1, 4], radio: 5 },
+    lagarto: { max: 1, prob: 0.12, vida: [25, 60], modo: "terrestre", vel: 2.0, espera: [3, 8], radio: 5 },
+    culebra: { max: 1, prob: 0.08, vida: [25, 60], modo: "terrestre", vel: 1.3, espera: [4, 9], radio: 6 },
+    liebre: { max: 1, prob: 0.10, vida: [20, 50], modo: "terrestre", vel: 6, espera: [2, 7], radio: 9 },
+    zorro: { max: 1, prob: 0.04, vida: [25, 50], modo: "terrestre", vel: 3.2, espera: [2, 6], radio: 10 },
+    gineta: { max: 1, prob: 0.04, vida: [20, 45], modo: "terrestre", vel: 3.0, espera: [2, 6], radio: 7 },
+    comadreja: { max: 1, prob: 0.07, vida: [20, 45], modo: "terrestre", vel: 4.0, espera: [1, 4], radio: 5 },
+    gallina: { max: 0, prob: 0, modo: "terrestre", vel: 1.2, espera: [1, 5], radio: 2.5 },
+    oveja_negra: { max: 0, prob: 0, modo: "terrestre", vel: 1.0, espera: [2, 8], radio: 3 },
+    rana: { max: 2, prob: 0.35, vida: [40, 90], modo: "terrestre", vel: 2.5, espera: [2, 6], radio: 2.5, agua: true },
+    sapo: { max: 1, prob: 0.12, vida: [40, 80], modo: "terrestre", vel: 1.2, espera: [3, 9], radio: 2.5, agua: true },
+    libelula: { max: 2, prob: 0.40, vida: [30, 70], modo: "volador", vel: 5, espera: [1, 3], radio: 4, agua: true, alturaMax: 0.5 },
+    oruga: { max: 2, prob: 0.30, vida: [60, 120], modo: "terrestre", vel: 0.5, espera: [2, 6], radio: 1.5 },
+    mariquita: { max: 2, prob: 0.35, vida: [40, 90], modo: "terrestre", vel: 0.8, espera: [1, 4], radio: 2 },
+  };
+  const fauna = [];
+  const faunaPorId = new Map(); // id de objeto del mapa → bicho anclado
+
+  function crearBicho(especie, x, y, anclado) {
+    const def = ESPECIES_FAUNA[especie];
+    const b = {
+      especie, x, y, tx: x, ty: y, cx: x, cy: y, radio: def.radio,
+      estado: "quieto", espera: 1 + Math.random() * 6,
+      espejo: Math.random() < 0.5, altura: 0, anclado: anclado || null,
+    };
+    fauna.push(b);
+    return b;
+  }
+
+  function celdaFaunaAleatoria() {
+    for (let i = 0; i < 200; i++) {
+      const c = 2 + Math.floor(Math.random() * (COLS - 4));
+      const f = 2 + Math.floor(Math.random() * (FILAS - 4));
+      if (transitable(c, f)) return [c + 0.5, f + 0.5];
+    }
+    return [jugador.x + 2, jugador.y + 2];
+  }
+  // orilla o lámina de agua para los bichos acuáticos libres
+  function puntoDeAgua(enTierra) {
+    if (!celdasAgua.length) return null;
+    for (let i = 0; i < 60; i++) {
+      const [c, f] = celdasAgua[Math.floor(Math.random() * celdasAgua.length)];
+      if (!enTierra) return [c + 0.5, f + 0.5];
+      const vecinos = [[c + 1, f], [c - 1, f], [c, f + 1], [c, f - 1]];
+      const [vc, vf] = vecinos[Math.floor(Math.random() * 4)];
+      if (transitable(vc, vf)) return [vc + 0.5, vf + 0.5];
+    }
+    return null;
+  }
+  // tirada de aparición: cada especie sale según su rareza, hasta su tope
+  function pasoAparicion(factor = 1) {
+    const cuenta = {};
+    for (const b of fauna) if (!b.anclado) cuenta[b.especie] = (cuenta[b.especie] || 0) + 1;
+    for (const [especie, def] of Object.entries(ESPECIES_FAUNA)) {
+      if (!def.max || (cuenta[especie] || 0) >= def.max) continue;
+      if (Math.random() > def.prob * factor) continue;
+      const p = def.agua ? puntoDeAgua(def.modo === "terrestre") : celdaFaunaAleatoria();
+      if (!p) continue;
+      const b = crearBicho(especie, p[0], p[1]);
+      b.vida = def.vida[0] + Math.random() * (def.vida[1] - def.vida[0]);
+      cuenta[especie] = (cuenta[especie] || 0) + 1;
+    }
+  }
+  // arranque con algo de vidilla, y a partir de ahí el dado cada 10 s
+  function crearFaunaLibre() {
+    for (let i = 0; i < 3; i++) pasoAparicion(1.5);
+    setInterval(pasoAparicion, 10000);
+  }
+  // objetos animal/insecto del mapa ⇄ bichos anclados (querencia editable)
+  function sincronizarFaunaMapa() {
+    const vivos = new Set();
+    for (const obj of mapa.objetos) {
+      if (!ESPECIES_FAUNA[obj.tipo]) continue;
+      vivos.add(obj.id);
+      const hx = obj.col + 0.5, hy = obj.fila + 0.5;
+      let b = faunaPorId.get(obj.id);
+      if (!b) {
+        b = crearBicho(obj.tipo, hx, hy, obj.id);
+        faunaPorId.set(obj.id, b);
+      } else if (b.cx !== hx || b.cy !== hy) {
+        // lo han movido en el editor: el bicho se muda con su querencia
+        b.cx = hx; b.cy = hy; b.x = hx; b.y = hy;
+        b.estado = "quieto"; b.espera = 1;
+      }
+    }
+    for (const [id, b] of [...faunaPorId]) {
+      if (!vivos.has(id)) {
+        faunaPorId.delete(id);
+        const i = fauna.indexOf(b);
+        if (i >= 0) fauna.splice(i, 1);
+      }
+    }
+  }
+
+  // el camino a pie se muestrea cada ~0,4 celdas: nadie atraviesa vallas,
+  // objetos sólidos ni el agua (ovejas y gallinas incluidas)
+  function caminoLibre(x0, y0, x1, y1) {
+    const d = Math.hypot(x1 - x0, y1 - y0);
+    const pasos = Math.max(1, Math.ceil(d / 0.4));
+    for (let i = 1; i <= pasos; i++) {
+      const t = i / pasos;
+      if (!transitable(Math.floor(x0 + (x1 - x0) * t), Math.floor(y0 + (y1 - y0) * t))) return false;
+    }
+    return true;
+  }
+
+  function nuevoDestinoFauna(b) {
+    const def = ESPECIES_FAUNA[b.especie];
+    for (let i = 0; i < 14; i++) {
+      // candidato alrededor de la querencia, siempre dentro de la finca
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 1 + Math.random() * Math.max(1, b.radio - 1);
+      const c = b.cx + Math.cos(ang) * dist, f = b.cy + Math.sin(ang) * dist;
+      const cc = Math.floor(c), ff = Math.floor(f);
+      if (def.modo === "volador") {
+        if (estadoCelda(cc, ff) !== "dentro") continue;
+        if (!def.agua && (terrenoEn(cc, ff) === "agua" || ocupacion.has(`${cc},${ff}`))) continue;
+      } else {
+        if (!transitable(cc, ff) || !caminoLibre(b.x, b.y, c, f)) continue;
+      }
+      b.tx = c; b.ty = f;
+      return true;
+    }
+    return false;
+  }
+
+  function actualizarFauna(dt) {
+    const seVan = [];
+    for (const b of fauna) {
+      const def = ESPECIES_FAUNA[b.especie];
+      // los libres tienen los días contados: al agotarse, último viaje
+      if (!b.anclado && b.vida !== undefined && !b.partiendo) {
+        b.vida -= dt;
+        if (b.vida <= 0 && b.estado === "quieto") {
+          b.partiendo = true;
+          if (nuevoDestinoFauna(b)) b.estado = "moviendo";
+          else { seVan.push(b); continue; }
+        }
+      }
+      if (b.partiendo && def.modo === "volador") {
+        // las aves se marchan ganando cielo hasta perderse de vista
+        b.partiendoT = (b.partiendoT || 0) + dt;
+        if (b.partiendoT > 3) { seVan.push(b); continue; }
+      }
+      if (b.estado === "quieto") {
+        b.altura = Math.max(0, b.altura - dt * 3);
+        b.espera -= dt;
+        if (b.espera <= 0 && nuevoDestinoFauna(b)) b.estado = "moviendo";
+        continue;
+      }
+      const dx = b.tx - b.x, dy = b.ty - b.y;
+      const d = Math.hypot(dx, dy);
+      if (def.modo === "volador") {
+        // ganar altura al despegar y perderla al acercarse al destino
+        const objetivo = b.partiendo ? 2.6 : Math.min(def.alturaMax || 1.6, d * 0.6);
+        b.altura += (objetivo - b.altura) * Math.min(1, dt * 4);
+      }
+      const paso = def.vel * dt;
+      if (d <= paso) {
+        if (b.partiendo) { seVan.push(b); continue; } // se escabulle
+        b.x = b.tx; b.y = b.ty;
+        b.estado = "quieto";
+        b.espera = def.espera[0] + Math.random() * (def.espera[1] - def.espera[0]);
+        // los bichos libres no acuáticos llevan su querencia consigo:
+        // así van derivando por toda la finca
+        if (!b.anclado && !def.agua) { b.cx = b.x; b.cy = b.y; }
+      } else {
+        b.x += (dx / d) * paso;
+        b.y += (dy / d) * paso;
+        if (Math.abs(dx) > 0.1) b.espejo = dx < 0;
+      }
+    }
+    for (const b of seVan) {
+      const i = fauna.indexOf(b);
+      if (i >= 0) fauna.splice(i, 1);
+    }
+  }
+
+  function dibujarAnimal(a, tiempo, tam) {
+    const spr = SPRITES[a.especie];
+    const def = ESPECIES_FAUNA[a.especie];
+    const [x, y] = celdaAPantalla(a.x - 0.5, a.y - 0.5);
+    let fr;
+    if (def.modo === "volador" && a.altura > 0.15) fr = spr.vuelo[Math.floor(tiempo * 8) % 2];
+    else if (a.estado === "moviendo" && spr.frames.length > 1) fr = spr.frames[Math.floor(tiempo * 7) % 2];
+    else fr = spr.frames[0];
+    dibujarSombra(ctx, x + tam / 2, y + tam - camara.zoom, spr.sombra, camara.zoom * (1 - a.altura * 0.3));
+    dibujarSprite(ctx, fr, x, y - a.altura * tam, tam, tam, camara.zoom, a.espejo);
+  }
+
+  // árboles decorativos del exterior: misma lógica que el pintado del mundo
+  function arbolExteriorEn(c, f) {
+    if (estadoCelda(c, f) !== "fuera") return null;
+    if (estadoCelda(c - 1, f) === "valla" || estadoCelda(c + 1, f) === "valla" ||
+        estadoCelda(c, f - 1) === "valla" || estadoCelda(c, f + 1) === "valla") return null;
+    const h = hash2(c * 7, f * 5);
+    if (h >= 0.05) return null;
+    return h < 0.025 ? "pino" : "roble";
+  }
+
+  // qué especie hay bajo un punto de pantalla (fauna > objetos > exterior)
+  function fichaEnPantalla(px, py) {
+    const [colF, filaF] = pantallaACelda(px, py);
+    let mejor = null, mejorD = 1.0;
+    for (const a of fauna) {
+      const d = Math.min(
+        Math.hypot(a.x - colF, a.y - filaF),
+        Math.hypot(a.x - colF, a.y - a.altura - filaF) // pájaro en vuelo: donde se le ve
+      );
+      if (d < mejorD) { mejorD = d; mejor = a.especie; }
+    }
+    if (mejor) { mostrarFicha(mejor); return; }
+    // objetos del mapa, contando toda la silueta del sprite (copa incluida);
+    // si hay varios solapados gana el de base más baja (el que se ve delante)
+    let elegido = null, baseMax = -1;
+    for (const obj of mapa.objetos) {
+      if (ESPECIES_FAUNA[obj.tipo]) continue; // animales: ya buscados como bichos
+      if (!FICHAS[obj.tipo] && obj.tipo !== "letrero") continue;
+      const spr = SPRITES[obj.tipo];
+      if (!spr) continue;
+      const [w, h] = tamanoObjeto(obj.tipo);
+      const aw = Math.max(spr.frames[0].ancho / PX, w), ah = Math.max(spr.frames[0].alto / PX, h);
+      const cx = obj.col + w / 2, base = obj.fila + h;
+      if (Math.abs(colF - cx) <= aw / 2 && filaF >= base - ah && filaF <= base && base > baseMax) {
+        baseMax = base; elegido = obj;
+      }
+    }
+    if (elegido) {
+      if (elegido.tipo === "letrero") mostrarLetrero(elegido);
+      else mostrarFicha(elegido.tipo);
+      return;
+    }
+    const c0 = Math.floor(colF);
+    for (let df = 0; df <= 5; df++) {
+      for (const c of [c0, c0 - 1, c0 + 1]) {
+        const f = Math.floor(filaF) + df;
+        const tipo = arbolExteriorEn(c, f);
+        if (!tipo) continue;
+        const spr = SPRITES[tipo];
+        const aw = spr.frames[0].ancho / PX, ah = spr.frames[0].alto / PX;
+        if (Math.abs(colF - (c + 0.5)) <= aw / 2 && filaF >= f + 1 - ah && filaF <= f + 1) {
+          mostrarFicha(tipo);
+          return;
+        }
+      }
+    }
   }
 
   function actualizarOtros(dt) {
@@ -794,6 +1380,48 @@
       o.ry += (o.y - o.ry) * Math.min(1, dt * 10);
     }
   }
+
+  // ── letreros: carteles con mensaje que planta la peña (máx. 3 por persona)
+  const btnLetrero = document.getElementById("btn-letrero");
+  const elLetreroInput = document.getElementById("letrero-input");
+  function plantarLetrero(texto) {
+    const mios = mapa.objetos.filter((o) => o.tipo === "letrero" && o.autor === idJugador);
+    if (mios.length >= 3) {
+      alert("Ya tienes 3 letreros plantados en la finka, que no es un tablón de anuncios. La organización puede borrarlos desde el editor.");
+      return;
+    }
+    // delante del jugador según mira, o en una celda libre pegada a él
+    const dx = jugador.dir === "lado" ? (jugador.espejo ? -1 : 1) : 0;
+    const dy = jugador.dir === "abajo" ? 1 : jugador.dir === "arriba" ? -1 : 0;
+    const jc = Math.floor(jugador.x), jf = Math.floor(jugador.y);
+    const candidatos = [[jc + dx, jf + dy], [jc, jf + 1], [jc + 1, jf], [jc - 1, jf], [jc, jf - 1]];
+    for (const [c, f] of candidatos) {
+      if (estadoCelda(c, f) !== "dentro" || terrenoEn(c, f) === "agua" || ocupacion.has(`${c},${f}`)) continue;
+      mapa.objetos.push({
+        id: idAleatorio("letrero"), tipo: "letrero", col: c, fila: f,
+        texto, autor: idJugador, nombre: miNombre || "",
+      });
+      recalcularOcupacion();
+      guardarMapa();
+      return;
+    }
+    alert("No hay sitio libre a tu alrededor para clavar el letrero.");
+  }
+  btnLetrero.addEventListener("click", () => {
+    elLetreroInput.classList.toggle("activo");
+    if (elLetreroInput.classList.contains("activo")) elLetreroInput.focus();
+  });
+  elLetreroInput.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Escape") { elLetreroInput.classList.remove("activo"); elLetreroInput.blur(); }
+    if (e.key !== "Enter") return;
+    const texto = elLetreroInput.value.trim().slice(0, 80);
+    if (!texto) return;
+    plantarLetrero(texto);
+    elLetreroInput.value = "";
+    elLetreroInput.classList.remove("activo");
+    elLetreroInput.blur();
+  });
 
   // ── chat: bocadillo sobre la cabeza ────────────────────────────────────
   const elChatInput = document.getElementById("chat-input");
@@ -811,7 +1439,7 @@
     const texto = elChatInput.value.trim().slice(0, 120);
     if (!texto) return;
     miMensaje = texto;
-    if (refYo) refYo.update({ mensaje: texto }).catch(() => {});
+    if (refYo && presenciaActiva) refYo.update({ mensaje: texto }).catch(() => {});
     btnQuitarMsg.classList.add("activo");
     elChatInput.value = "";
     elChatInput.classList.remove("activo");
@@ -819,7 +1447,7 @@
   });
   btnQuitarMsg.addEventListener("click", () => {
     miMensaje = null;
-    if (refYo) refYo.update({ mensaje: null }).catch(() => {});
+    if (refYo && presenciaActiva) refYo.update({ mensaje: null }).catch(() => {});
     btnQuitarMsg.classList.remove("activo");
   });
 
@@ -926,6 +1554,9 @@
     const animFrame = Math.floor(tiempo * 1.5) % 2;
     const dibujables = [];
     for (const obj of mapa.objetos) {
+      // los animales/insectos del mapa son querencias: en juego los dibuja
+      // su bicho paseando; en el editor se muestran quietos para editarlos
+      if (modo !== "editor" && ESPECIES_FAUNA[obj.tipo]) continue;
       const [aw, ah] = tamanoObjeto(obj.tipo);
       if (obj.col + aw + 1 < colMin || obj.col - 1 > colMax) continue;
       if (obj.fila + ah < filaMin - 1 || obj.fila > filaMax + 2) continue;
@@ -966,8 +1597,19 @@
         },
       });
     }
+    // fauna en tierra: entra en el orden de profundidad; en vuelo: encima de todo
+    const enVuelo = [];
+    if (modo !== "editor") {
+      for (const a of fauna) {
+        if (a.x < colMin - 2 || a.x > colMax + 2 || a.y < filaMin - 2 || a.y > filaMax + 2) continue;
+        if (a.altura > 0.15) { enVuelo.push(a); continue; }
+        const bicho = a;
+        dibujables.push({ orden: bicho.y + 0.5, dibujar: () => dibujarAnimal(bicho, tiempo, tam) });
+      }
+    }
     dibujables.sort((a, b) => a.orden - b.orden);
     for (const d of dibujables) d.dibujar();
+    for (const a of enVuelo) dibujarAnimal(a, tiempo, tam);
 
     // nombres y bocadillos por encima de todo
     const rotulos = [];
@@ -1024,11 +1666,14 @@
     tAcum += dt;
     actualizarJugador(dt);
     actualizarOtros(dt);
+    actualizarFauna(dt);
     actualizarCamara();
     dibujar(tAcum);
     requestAnimationFrame(loop);
   }
   reconstruirMundo();
   resize();
+  crearFaunaLibre();
+  sincronizarFaunaMapa();
   requestAnimationFrame(loop);
 })();

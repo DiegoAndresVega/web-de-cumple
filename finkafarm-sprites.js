@@ -39,9 +39,25 @@
     nuez: "#8a5a34", bellota: "#b08648", endrina: "#3c4a8a", arandano_f: "#5566c8",
     fresa_f: "#e03c3c", pistacho_f: "#d8907a",
     lavanda_f: "#9a7ad0", lavanda_l: "#b89ae6",
+    // plantas silvestres nuevas
+    retama_v: "#5f9243", retama_d: "#4a7634", retama_f: "#f4d83a",
+    espino_v: "#557e3f", espino_d: "#446636", espino_l: "#6f9c54",
+    zarza_v: "#3f6b35", zarza_d: "#2f5228", zarza_l: "#577f44", mora: "#352a4a",
+    amapola_r: "#d83a30", amapola_d: "#7e1e18",
+    tomillo_v: "#7e9a6e", tomillo_d: "#647e57", tomillo_f: "#d8a8c8",
+    romero_v: "#5e8056", romero_d: "#4a6644", romero_l: "#7a9c70", romero_f: "#9ab4e6",
     // animales
     blanco: "#f7f3e8", crema: "#e3d8bd", cresta: "#e04848", pico: "#efa23b",
     negro: "#2b2724", negro_l: "#3d3833", gris: "#6b645c", rosa_oveja: "#e8b4ac",
+    // fauna silvestre
+    pardo: "#8a6644", pardo_d: "#6b4e33", pardo_l: "#a98a60",
+    pata_roja: "#d6604a", abub: "#d8a878", abub_d: "#b8885c",
+    perdiz_p: "#9a8268", perdiz_d: "#7a6650",
+    lag_v: "#7ca24a", lag_d: "#5f8138", sierpe: "#a89058", sierpe_d: "#5e5030",
+    rana_v: "#5fae3c", rana_d: "#47882c",
+    libe: "#3da8c8", libe_d: "#2c80a0",
+    oruga_v: "#9ac24e", oruga_l: "#c2da6e", oruga_d: "#5f7a2c",
+    zorro_n: "#d8743a", zorro_d: "#b05a28",
     // caseta
     tejado: "#c25744", tejado_d: "#9b4234", tejado_l: "#d4705c", pared: "#efe3c4",
     pared_d: "#d4c49c", zocalo: "#a89878",
@@ -352,6 +368,116 @@
     return frame(g);
   }
 
+  function spriteRetama() {
+    // Cytisus scoparius: abanico de tallos verdes finos cuajados de flor amarilla
+    const g = crearGrid(28, 26);
+    rect(g, 12, 22, 4, 4, "tronco_d");
+    const tallos = [[-10, 9], [-6, 5], [-2, 2], [2, 3], [6, 6], [10, 10]];
+    for (const [dx, yTop] of tallos) {
+      const pasos = 22 - yTop;
+      for (let i = 0; i <= pasos; i++) {
+        const x = Math.round(14 + (dx * i) / pasos);
+        punto(g, x, 22 - i, i % 3 === 0 ? "retama_d" : "retama_v");
+        if (i > 2 && i % 2 === 0) punto(g, x + (dx < 0 ? -1 : 1), 22 - i, "retama_v");
+      }
+    }
+    // flor amarilla salpicada por los dos tercios superiores
+    for (const [x, y] of [[4, 8], [7, 5], [10, 3], [14, 2], [18, 4], [21, 7], [24, 10],
+      [6, 12], [11, 7], [16, 6], [20, 11], [9, 10], [13, 5], [17, 10], [23, 13], [3, 13]]) {
+      punto(g, x, y, "retama_f");
+      if ((x + y) % 3 === 0) punto(g, x + 1, y, "retama_f");
+    }
+    return frame(g);
+  }
+  function spriteEspino() {
+    // Crataegus monogyna: arbolillo de copa densa con flor blanca y majuelas rojas
+    const g = crearGrid(34, 38);
+    rect(g, 15, 30, 4, 8, "tronco");
+    rect(g, 15, 30, 1, 8, "tronco_l");
+    rect(g, 18, 30, 1, 8, "tronco_d");
+    copaFrondosa(g, 17, 16, 12, "espino_v", "espino_d", "espino_l", "espino_l");
+    for (const [x, y] of [[9, 11], [24, 9], [16, 5], [12, 19], [22, 17], [18, 12], [6, 16], [27, 14]]) {
+      punto(g, x, y, "flor_b");
+    }
+    for (const [x, y] of [[13, 15], [20, 8], [25, 19], [9, 8], [16, 22]]) fruto(g, x, y, "rojo");
+    return frame(g);
+  }
+  function spriteZarza() {
+    // Rubus ulmifolius: mata enmarañada baja con moras
+    const g = crearGrid(32, 18);
+    circulo(g, 10, 11, 7, "zarza_d");
+    circulo(g, 21, 11, 8, "zarza_v");
+    circulo(g, 14, 8, 6, "zarza_v");
+    circulo(g, 9, 8, 4, "zarza_l");
+    circulo(g, 19, 7, 3, "zarza_l");
+    // sarmientos arqueados que sobresalen
+    for (const [x0, y0, dx] of [[3, 6, -1], [27, 5, 1], [15, 2, 1]]) {
+      punto(g, x0, y0, "zarza_d"); punto(g, x0 + dx, y0 - 1, "zarza_d"); punto(g, x0 + dx * 2, y0 - 2, "zarza_v");
+    }
+    for (const [x, y] of [[7, 11], [13, 13], [19, 10], [25, 12], [16, 7], [22, 15]]) fruto(g, x, y, "mora");
+    punto(g, 11, 6, "flor_b"); punto(g, 24, 8, "flor_b");
+    return frame(g);
+  }
+  function spriteAmapola() {
+    // Papaver rhoeas: matita con amapolas rojas
+    const g = crearGrid(18, 15);
+    for (const [x, h] of [[4, 7], [9, 10], [14, 6]]) {
+      rect(g, x, 14 - h, 1, h, "retama_v");
+      punto(g, x - 1, 13, "retama_v"); punto(g, x + 1, 12, "retama_d");
+      // corola roja con centro oscuro
+      const cy = 13 - h;
+      rect(g, x - 1, cy - 1, 3, 3, "amapola_r");
+      punto(g, x - 2, cy, "amapola_r"); punto(g, x + 2, cy, "amapola_r");
+      punto(g, x, cy, "amapola_d");
+    }
+    punto(g, 2, 13, "hierba_l"); punto(g, 12, 13, "hierba_l"); punto(g, 16, 14, "hierba_l");
+    return frame(g);
+  }
+  function spriteRomero() {
+    // Salvia rosmarinus: mata erguida de agujas verde grisáceo con flor azulada
+    const g = crearGrid(22, 20);
+    rect(g, 10, 17, 2, 3, "tronco_d");
+    const ramas = [[-7, 8], [-4, 4], [-1, 2], [2, 3], [5, 5], [8, 9]];
+    for (const [dx, yTop] of ramas) {
+      const pasos = 17 - yTop;
+      for (let i = 0; i <= pasos; i++) {
+        const x = Math.round(11 + (dx * i) / pasos);
+        punto(g, x, 17 - i, "romero_v");
+        if (i % 2 === 1) { punto(g, x - 1, 17 - i, "romero_d"); punto(g, x + 1, 17 - i, "romero_l"); }
+      }
+    }
+    for (const [x, y] of [[5, 9], [9, 5], [13, 4], [17, 8], [7, 13], [15, 12], [11, 8], [12, 3]]) {
+      punto(g, x, y, "romero_f");
+    }
+    return frame(g);
+  }
+  function spriteTomillo() {
+    // Thymus zygis: cojín bajo gris-verde con florecilla rosada
+    const g = crearGrid(18, 11);
+    circulo(g, 6, 7, 4, "tomillo_d");
+    circulo(g, 12, 7, 4, "tomillo_v");
+    circulo(g, 9, 5, 4, "tomillo_v");
+    punto(g, 5, 4, "tomillo_v"); punto(g, 13, 4, "tomillo_d");
+    for (const [x, y] of [[4, 4], [8, 2], [12, 3], [15, 5], [6, 6], [10, 5], [14, 7]]) {
+      punto(g, x, y, "tomillo_f");
+    }
+    return frame(g);
+  }
+
+  function spriteLetrero() {
+    // cartel de madera donde la peña deja sus mensajes
+    const g = crearGrid(16, 15);
+    rect(g, 7, 10, 2, 5, "tronco_d");        // poste
+    rect(g, 1, 1, 14, 9, "madera");          // tabla
+    rect(g, 1, 1, 14, 1, "madera_l");
+    rect(g, 1, 9, 14, 1, "madera_d");
+    rect(g, 0, 1, 1, 9, "madera_d"); rect(g, 15, 1, 1, 9, "madera_d");
+    rect(g, 3, 3, 10, 1, "tronco_d");        // renglones "escritos"
+    rect(g, 3, 5, 8, 1, "tronco_d");
+    rect(g, 3, 7, 9, 1, "tronco_d");
+    return frame(g);
+  }
+
   // ── edificios ──────────────────────────────────────────────────────────
   function spriteCaseta() {
     // caseta rectangular de una planta, 8 m de ancho x 3 m de fondo
@@ -462,12 +588,338 @@
     return frame(g);
   }
 
+  // ── fauna silvestre (vista lateral mirando a la derecha) ──────────────
+  function spriteGorrion() {
+    const g = crearGrid(10, 9);
+    rect(g, 0, 4, 3, 1, "pardo_d");          // cola
+    circulo(g, 5, 5, 2.6, "pardo");          // cuerpo
+    rect(g, 3, 6, 4, 2, "crema");            // pecho
+    rect(g, 3, 4, 4, 2, "pardo_d");          // ala plegada
+    circulo(g, 7, 3, 1.8, "pardo_d");        // cabeza con capirote
+    punto(g, 8, 4, "crema");                 // mejilla
+    punto(g, 7, 3, "negro");                 // ojo
+    punto(g, 9, 4, "negro");                 // pico
+    punto(g, 4, 8, "pardo_d"); punto(g, 6, 8, "pardo_d"); // patas
+    return frame(g);
+  }
+  function spriteGorrionVuelo(f) {
+    const g = crearGrid(12, 10);
+    rect(g, 0, 5, 3, 1, "pardo_d");
+    circulo(g, 6, 5, 2.4, "pardo");
+    rect(g, 4, 6, 4, 1, "crema");
+    circulo(g, 9, 4, 1.6, "pardo_d");
+    punto(g, 9, 4, "negro"); punto(g, 11, 5, "negro");
+    if (f === 0) { rect(g, 4, 1, 2, 4, "pardo_d"); rect(g, 5, 0, 2, 2, "pardo"); } // alas arriba
+    else { rect(g, 4, 6, 2, 3, "pardo_d"); rect(g, 5, 8, 2, 1, "pardo"); }          // alas abajo
+    return frame(g);
+  }
+  function spriteUrraca() {
+    const g = crearGrid(16, 11);
+    rect(g, 0, 3, 6, 2, "negro");            // cola larga
+    punto(g, 0, 2, "negro_l");
+    circulo(g, 9, 6, 2.8, "negro");          // cuerpo
+    rect(g, 8, 7, 4, 2, "blanco");           // vientre blanco
+    rect(g, 6, 5, 3, 2, "blanco");           // hombro blanco
+    circulo(g, 12, 4, 1.9, "negro");         // cabeza
+    punto(g, 12, 4, "blanco");               // ojo
+    rect(g, 14, 4, 2, 1, "gris");            // pico
+    punto(g, 9, 9, "gris"); punto(g, 11, 9, "gris"); // patas
+    return frame(g);
+  }
+  function spriteUrracaVuelo(f) {
+    const g = crearGrid(18, 11);
+    rect(g, 0, 5, 6, 2, "negro");
+    circulo(g, 9, 6, 2.6, "negro");
+    rect(g, 8, 7, 4, 1, "blanco");
+    circulo(g, 13, 5, 1.8, "negro");
+    punto(g, 13, 5, "blanco"); rect(g, 15, 5, 2, 1, "gris");
+    if (f === 0) { rect(g, 6, 1, 3, 5, "negro"); rect(g, 7, 2, 2, 2, "blanco"); }
+    else { rect(g, 6, 7, 3, 4, "negro"); rect(g, 7, 8, 2, 2, "blanco"); }
+    return frame(g);
+  }
+  function spriteAbubilla() {
+    const g = crearGrid(14, 12);
+    rect(g, 0, 5, 4, 2, "negro");            // cola con banda
+    punto(g, 1, 5, "blanco"); punto(g, 2, 6, "blanco");
+    circulo(g, 6, 7, 2.6, "abub");           // cuerpo canela
+    rect(g, 4, 5, 5, 3, "negro");            // ala rayada
+    punto(g, 5, 6, "blanco"); punto(g, 7, 6, "blanco"); punto(g, 6, 7, "blanco");
+    circulo(g, 9, 5, 1.8, "abub");           // cabeza
+    punto(g, 9, 5, "negro");                 // ojo
+    rect(g, 11, 5, 3, 1, "negro");           // pico largo curvo
+    punto(g, 13, 6, "negro");
+    // cresta abierta con puntas negras
+    punto(g, 8, 2, "abub"); punto(g, 9, 1, "abub"); punto(g, 10, 2, "abub");
+    punto(g, 8, 1, "negro"); punto(g, 9, 0, "negro"); punto(g, 10, 1, "negro");
+    punto(g, 6, 10, "gris"); punto(g, 8, 10, "gris");
+    return frame(g);
+  }
+  function spriteAbubillaVuelo(f) {
+    const g = crearGrid(15, 12);
+    rect(g, 0, 6, 4, 1, "negro"); punto(g, 1, 6, "blanco");
+    circulo(g, 7, 6, 2.4, "abub");
+    circulo(g, 10, 5, 1.6, "abub");
+    punto(g, 10, 5, "negro"); rect(g, 12, 5, 3, 1, "negro");
+    punto(g, 9, 2, "abub"); punto(g, 9, 1, "negro");
+    if (f === 0) { rect(g, 5, 1, 3, 5, "negro"); punto(g, 6, 2, "blanco"); punto(g, 6, 4, "blanco"); }
+    else { rect(g, 5, 7, 3, 4, "negro"); punto(g, 6, 8, "blanco"); punto(g, 6, 10, "blanco"); }
+    return frame(g);
+  }
+  function spriteCiguena() {
+    const g = crearGrid(14, 20);
+    rect(g, 6, 13, 1, 6, "pata_roja");       // patas largas
+    rect(g, 9, 13, 1, 6, "pata_roja");
+    circulo(g, 7, 10, 3.4, "blanco");        // cuerpo
+    rect(g, 3, 8, 5, 4, "negro");            // remeras negras plegadas
+    punto(g, 3, 12, "negro");
+    rect(g, 10, 4, 2, 6, "blanco");          // cuello
+    circulo(g, 11, 3, 1.7, "blanco");        // cabeza
+    punto(g, 11, 3, "negro");                // ojo
+    rect(g, 13, 3, 4, 1, "pata_roja");       // pico largo rojo
+    return frame(g);
+  }
+  function spriteCiguenaVuelo(f) {
+    const g = crearGrid(22, 13);
+    rect(g, 0, 6, 5, 1, "negro");            // patas estiradas atrás
+    rect(g, 0, 7, 3, 1, "pata_roja");
+    circulo(g, 9, 6, 2.8, "blanco");         // cuerpo
+    rect(g, 13, 5, 4, 2, "blanco");          // cuello extendido
+    circulo(g, 17, 5, 1.5, "blanco");
+    punto(g, 17, 5, "negro");
+    rect(g, 19, 5, 3, 1, "pata_roja");
+    if (f === 0) { rect(g, 6, 0, 7, 3, "blanco"); rect(g, 6, 0, 7, 1, "negro"); rect(g, 5, 2, 3, 2, "negro"); }
+    else { rect(g, 6, 9, 7, 3, "blanco"); rect(g, 6, 11, 7, 1, "negro"); rect(g, 5, 8, 3, 2, "negro"); }
+    return frame(g);
+  }
+  function spritePerdiz(f) {
+    const g = crearGrid(13, 11);
+    circulo(g, 6, 6, 3.6, "perdiz_p");       // cuerpo rechoncho
+    rect(g, 0, 4, 3, 2, "perdiz_d");         // cola corta
+    rect(g, 3, 7, 3, 2, "perdiz_d");         // flanco barrado
+    punto(g, 4, 7, "blanco"); punto(g, 5, 8, "negro");
+    circulo(g, 9, 4, 2, "perdiz_p");         // cabeza
+    rect(g, 9, 5, 3, 1, "blanco");           // garganta blanca
+    punto(g, 9, 6, "negro"); punto(g, 10, 6, "negro"); // collar negro
+    punto(g, 9, 3, "negro");                 // ojo
+    rect(g, 11, 4, 2, 1, "pata_roja");       // pico rojo
+    rect(g, f === 0 ? 5 : 6, 9, 1, 2, "pata_roja"); // patas rojas
+    rect(g, f === 0 ? 8 : 7, 9, 1, 2, "pata_roja");
+    return frame(g);
+  }
+  function spriteLagartija(f) {
+    const g = crearGrid(12, 5);
+    rect(g, 3, 2, 6, 2, "gris");             // cuerpo
+    rect(g, 0, 3 - (f === 0 ? 0 : 1), 3, 1, "gris");   // cola que culebrea
+    rect(g, 9, 1, 3, 2, "gris");             // cabeza
+    punto(g, 10, 1, "negro");                // ojo
+    punto(g, 4, 2, "pardo_d"); punto(g, 6, 3, "pardo_d"); // moteado dorsal
+    // patitas alternas
+    punto(g, 4, f === 0 ? 4 : 1, "gris"); punto(g, 8, f === 0 ? 1 : 4, "gris");
+    return frame(g);
+  }
+  function spriteLagarto(f) {
+    const g = crearGrid(18, 7);
+    rect(g, 5, 2, 8, 3, "lag_v");            // cuerpo
+    rect(g, 0, 4 - (f === 0 ? 0 : 1), 5, 2, "lag_v");  // colaza
+    rect(g, 0, 4 - (f === 0 ? 0 : 1), 3, 1, "lag_d");
+    rect(g, 13, 1, 4, 3, "lag_v");           // cabezón
+    punto(g, 15, 1, "negro");                // ojo
+    rect(g, 6, 2, 6, 1, "lag_d");            // lomo
+    punto(g, 7, 3, "agua"); punto(g, 10, 4, "agua"); // ocelos azules
+    // patas
+    rect(g, 6, f === 0 ? 5 : 4, 1, 2, "lag_d"); rect(g, 11, f === 0 ? 4 : 5, 1, 2, "lag_d");
+    return frame(g);
+  }
+  function spriteCulebra(f) {
+    const g = crearGrid(18, 6);
+    // cuerpo ondulado en S, dos fases de reptación
+    for (let x = 0; x < 15; x++) {
+      const y = 2 + Math.round(Math.sin(x / 2.2 + (f === 0 ? 0 : Math.PI)) * 1.4);
+      punto(g, x, y, "sierpe"); punto(g, x, y + 1, "sierpe");
+      if (x % 3 === 1) punto(g, x, y, "sierpe_d"); // peldaños de la escalera
+    }
+    rect(g, 14, 1, 3, 2, "sierpe");          // cabeza
+    punto(g, 15, 1, "sierpe_d"); punto(g, 16, 1, "negro"); // ojo
+    punto(g, 17, 2, "amapola_r");            // lengua
+    return frame(g);
+  }
+  function spriteRana(f) {
+    const g = crearGrid(9, 7);
+    circulo(g, 4, 4, 2.6, "rana_v");         // cuerpo
+    rect(g, 2, 5, 5, 1, "crema");            // papada clara
+    punto(g, 2, 1, "rana_v"); punto(g, 6, 1, "rana_v"); // ojos saltones
+    punto(g, 2, 2, "rana_d"); punto(g, 6, 2, "rana_d");
+    punto(g, 2, 1, "negro"); punto(g, 6, 1, "negro");
+    punto(g, 4, 3, "rana_d");                // raya dorsal
+    if (f === 0) { rect(g, 2, 6, 2, 1, "rana_d"); rect(g, 5, 6, 2, 1, "rana_d"); }
+    else { rect(g, 0, 5, 2, 2, "rana_d"); rect(g, 7, 5, 2, 2, "rana_d"); } // ancas estiradas
+    return frame(g);
+  }
+  function spriteSapo(f) {
+    const g = crearGrid(11, 8);
+    circulo(g, 5, 5, 3.2, "pardo");          // cuerpo rechoncho
+    rect(g, 2, 6, 7, 2, "pardo_d");
+    punto(g, 3, 2, "pardo"); punto(g, 8, 2, "pardo"); // bultos oculares
+    punto(g, 3, 2, "negro"); punto(g, 8, 2, "negro");
+    punto(g, 4, 4, "pardo_d"); punto(g, 6, 3, "pardo_d"); punto(g, 7, 5, "pardo_d"); // verrugas
+    rect(g, f === 0 ? 2 : 3, 7, 2, 1, "pardo_d");
+    rect(g, f === 0 ? 7 : 6, 7, 2, 1, "pardo_d");
+    return frame(g);
+  }
+  function spriteLibelula(f) {
+    // f 0: posada (alas plegadas a lo largo); 1-2: volando (alas finas batiendo)
+    const g = crearGrid(14, 9);
+    if (f === 1) {                            // alas en vertical
+      rect(g, 5, 0, 1, 4, "agua_ll"); rect(g, 8, 0, 1, 4, "agua_ll");
+      rect(g, 5, 5, 1, 4, "agua_ll"); rect(g, 8, 5, 1, 4, "agua_ll");
+    } else if (f === 2) {                     // alas abiertas en diagonal
+      rect(g, 3, 2, 3, 1, "agua_ll"); rect(g, 8, 2, 3, 1, "agua_ll");
+      rect(g, 3, 6, 3, 1, "agua_ll"); rect(g, 8, 6, 3, 1, "agua_ll");
+    }
+    rect(g, 0, 4, 10, 1, "libe");            // abdomen fino azul
+    punto(g, 1, 4, "libe_d"); punto(g, 3, 4, "libe_d"); punto(g, 5, 4, "libe_d");
+    if (f === 0) rect(g, 2, 3, 8, 1, "agua_ll"); // alas plegadas encima
+    rect(g, 10, 3, 2, 3, "libe");            // tórax
+    punto(g, 12, 3, "negro"); punto(g, 12, 5, "negro"); // ojazos
+    return frame(g);
+  }
+  function spriteOruga(f) {
+    const g = crearGrid(11, 5);
+    const seg = f === 0 ? [0, 2, 4, 6] : [1, 3, 4, 6];   // se encoge y estira
+    for (let i = 0; i < seg.length; i++) {
+      rect(g, Math.round(seg[i]), 1 + (i % 2 === 0 ? 1 : 0), 3, 3, i % 2 ? "oruga_l" : "oruga_v");
+    }
+    rect(g, 8, 1, 3, 3, "oruga_d");          // cabeza
+    punto(g, 10, 2, "negro");                // ojo
+    punto(g, 8, 0, "oruga_d"); punto(g, 10, 0, "oruga_d"); // antenitas
+    return frame(g);
+  }
+  function spriteMariquita(f) {
+    const g = crearGrid(6, 5);
+    circulo(g, 3, 2, 2.2, "rojo");           // élitros
+    rect(g, 3, 0, 1, 4, "negro_l");          // línea central
+    punto(g, 0, 2, "negro"); punto(g, 1, 2, "negro"); // cabeza
+    punto(g, 2, 1, "negro"); punto(g, 4, 1, "negro"); punto(g, 4, 3, "negro"); punto(g, 2, 3, "negro"); // puntos
+    punto(g, f === 0 ? 2 : 3, 4, "negro"); punto(g, f === 0 ? 4 : 5, 4, "negro"); // patitas
+    return frame(g);
+  }
+  function spriteZorro(f) {
+    const g = crearGrid(17, 11);
+    circulo(g, 3, 6, 2.4, "zorro_n");        // cola tupida
+    punto(g, 1, 5, "blanco"); punto(g, 1, 6, "blanco"); punto(g, 2, 6, "blanco"); // punta blanca
+    rect(g, 5, 4, 7, 4, "zorro_n");          // cuerpo
+    rect(g, 5, 4, 7, 1, "zorro_d");          // lomo
+    rect(g, 11, 2, 4, 4, "zorro_n");         // cabeza
+    punto(g, 11, 1, "zorro_n"); punto(g, 14, 1, "zorro_n"); // orejas puntiagudas
+    punto(g, 11, 0, "negro_l"); punto(g, 14, 0, "negro_l"); // puntas oscuras
+    punto(g, 13, 3, "negro");                // ojo
+    rect(g, 15, 4, 2, 2, "blanco"); punto(g, 16, 4, "negro"); // hocico blanco y trufa
+    rect(g, 11, 6, 3, 2, "blanco");          // pecho blanco
+    rect(g, f === 0 ? 6 : 7, 8, 1, 3, "negro_l"); // patas oscuras alternas
+    rect(g, f === 0 ? 10 : 9, 8, 1, 3, "negro_l");
+    return frame(g);
+  }
+  function spriteGineta(f) {
+    const g = crearGrid(17, 8);
+    for (let x = 0; x < 6; x++) rect(g, x, 4, 1, 2, x % 2 ? "negro" : "crema"); // colaza anillada
+    rect(g, 6, 3, 7, 3, "crema");            // cuerpo moteado
+    punto(g, 7, 3, "negro"); punto(g, 9, 4, "negro"); punto(g, 11, 3, "negro");
+    punto(g, 8, 5, "negro"); punto(g, 12, 5, "negro");
+    rect(g, 13, 2, 3, 3, "crema");           // cabeza
+    punto(g, 13, 1, "crema"); punto(g, 15, 1, "crema"); // orejotas
+    punto(g, 14, 3, "negro");                // ojo
+    punto(g, 16, 4, "negro");                // hocico
+    rect(g, f === 0 ? 7 : 8, 6, 1, 2, "crema");
+    rect(g, f === 0 ? 11 : 10, 6, 1, 2, "crema");
+    return frame(g);
+  }
+  function spriteComadreja(f) {
+    const g = crearGrid(14, 7);
+    rect(g, 0, 2, 2, 1, "pardo_d");          // colita
+    rect(g, 2, 2, 9, 2, "pardo");            // cuerpo alargado
+    rect(g, 3, 4, 7, 1, "blanco");           // vientre blanco
+    rect(g, 10, 1, 3, 3, "pardo");           // cabeza
+    punto(g, 11, 1, "negro");                // ojo
+    punto(g, 13, 2, "negro");                // hocico
+    rect(g, f === 0 ? 4 : 5, 5, 1, 2, "pardo_d");
+    rect(g, f === 0 ? 9 : 8, 5, 1, 2, "pardo_d");
+    return frame(g);
+  }
+  function spriteLiebre(f) {
+    const g = crearGrid(14, 13);
+    rect(g, 8, 0, 2, 5, "pardo_l");          // orejazas
+    rect(g, 11, 0, 2, 5, "pardo_l");
+    punto(g, 8, 1, "rosa_oveja"); punto(g, 11, 1, "rosa_oveja");
+    circulo(g, 10, 6, 2.2, "pardo_l");       // cabeza
+    punto(g, 11, 5, "negro");                // ojo
+    punto(g, 13, 7, "pardo_d");              // hocico
+    circulo(g, 5, 9, 3.4, "pardo_l");        // cuerpo agazapado
+    rect(g, 2, 10, 8, 2, "pardo");
+    punto(g, 1, 8, "blanco");                // rabito
+    if (f === 0) { rect(g, 3, 12, 3, 1, "pardo_d"); rect(g, 8, 12, 3, 1, "pardo_d"); }
+    else { rect(g, 1, 12, 3, 1, "pardo_d"); rect(g, 9, 12, 3, 1, "pardo_d"); } // zancada
+    return frame(g);
+  }
+
   // ── jugador (parametrizado por colores, para personajes online) ───────
   // c: { piel, piel_d, pelo, camisa, camisa_d, pantalon, bota } en hex
   // (gridACanvas acepta colores que no estén en la PALETA). Los ojos llevan
   // blanco + pupila oscura para que se vean sobre cualquier color de piel.
   const BLANCO_OJO = "#ffffff", PUPILA = "#1a1a1a";
-  function spriteJugador(dir, frameIdx, c) {
+
+  // Peinados: cómo se pinta el pelo en cada dirección. "calvo" no pinta nada.
+  const PEINADOS = ["corto", "largo", "pinchos", "loco", "calvo"];
+  function dibujarPelo(g, dir, peinado, pelo) {
+    if (peinado === "calvo") return;
+    if (dir === "abajo") {
+      if (peinado === "largo") {
+        rect(g, 3, 1, 11, 3, pelo);
+        rect(g, 2, 3, 2, 9, pelo); rect(g, 13, 3, 2, 9, pelo); // melena a los hombros
+      } else if (peinado === "pinchos") {
+        rect(g, 3, 2, 11, 2, pelo);
+        for (const x of [3, 5, 7, 9, 11, 13]) punto(g, x, 1, pelo);
+        for (const x of [4, 8, 12]) punto(g, x, 0, pelo);
+      } else if (peinado === "loco") {
+        rect(g, 3, 1, 11, 3, pelo);
+        for (const [x, y] of [[1, 2], [14, 2], [3, 0], [8, 0], [12, 0], [0, 4], [15, 4], [6, 0], [10, 0], [15, 1]]) punto(g, x, y, pelo);
+      } else { // corto
+        rect(g, 3, 1, 11, 3, pelo);
+        punto(g, 3, 4, pelo); punto(g, 13, 4, pelo);
+      }
+    } else if (dir === "arriba") {
+      if (peinado === "largo") {
+        rect(g, 3, 0, 11, 8, pelo);
+        rect(g, 3, 8, 11, 3, pelo); rect(g, 4, 11, 9, 1, pelo);
+      } else if (peinado === "pinchos") {
+        rect(g, 3, 2, 11, 6, pelo);
+        for (const x of [3, 5, 7, 9, 11, 13]) punto(g, x, 1, pelo);
+        for (const x of [4, 8, 12]) punto(g, x, 0, pelo);
+      } else if (peinado === "loco") {
+        rect(g, 3, 1, 11, 7, pelo);
+        for (const [x, y] of [[1, 3], [14, 2], [2, 0], [8, 0], [13, 0], [0, 5], [15, 5], [5, 0], [10, 0]]) punto(g, x, y, pelo);
+      } else {
+        rect(g, 3, 0, 11, 8, pelo);
+        rect(g, 4, 7, 9, 1, pelo);
+      }
+    } else { // lado
+      if (peinado === "largo") {
+        rect(g, 3, 1, 11, 4, pelo);
+        rect(g, 3, 5, 4, 8, pelo); // melena cayendo por la espalda
+      } else if (peinado === "pinchos") {
+        rect(g, 3, 2, 11, 3, pelo);
+        for (const x of [4, 6, 8, 10, 12]) punto(g, x, 1, pelo);
+        for (const x of [5, 9, 13]) punto(g, x, 0, pelo);
+      } else if (peinado === "loco") {
+        rect(g, 3, 1, 11, 4, pelo);
+        for (const [x, y] of [[2, 2], [1, 5], [3, 0], [7, 0], [11, 0], [14, 1], [15, 3], [5, 0]]) punto(g, x, y, pelo);
+      } else {
+        rect(g, 3, 1, 11, 4, pelo);
+        punto(g, 3, 5, pelo);
+      }
+    }
+  }
+
+  function spriteJugador(dir, frameIdx, c, peinado) {
     const g = crearGrid(16, 26);
     const pasoIzq = frameIdx === 0 ? 0 : 1, pasoDer = frameIdx === 0 ? 1 : 0;
     rect(g, 5, 18 + pasoIzq, 3, 6 - pasoIzq, c.pantalon);
@@ -481,30 +933,24 @@
     rect(g, 13, 11, 2, 7, c.camisa_d); punto(g, 14, 17, c.piel);
     circulo(g, 8, 5, 4.5, c.piel);
     if (dir === "abajo") {
-      rect(g, 3, 1, 11, 3, c.pelo);
-      punto(g, 3, 4, c.pelo); punto(g, 13, 4, c.pelo);
       punto(g, 5, 5, BLANCO_OJO); punto(g, 6, 5, PUPILA);
       punto(g, 10, 5, PUPILA); punto(g, 11, 5, BLANCO_OJO);
       punto(g, 6, 8, c.piel_d); punto(g, 10, 8, c.piel_d);
       rect(g, 7, 8, 3, 1, c.piel_d);
-    } else if (dir === "arriba") {
-      rect(g, 3, 0, 11, 8, c.pelo);
-      rect(g, 4, 7, 9, 1, c.pelo);
-    } else {
-      rect(g, 3, 1, 11, 4, c.pelo);
-      punto(g, 3, 5, c.pelo);
+    } else if (dir === "lado") {
       punto(g, 10, 5, BLANCO_OJO); punto(g, 11, 5, PUPILA);
       punto(g, 13, 7, c.piel_d);
     }
+    dibujarPelo(g, dir, peinado || "corto", c.pelo);
     return frame(g);
   }
 
-  // Juego completo de sprites de un personaje con sus colores.
-  function crearSpritesJugador(c) {
+  // Juego completo de sprites de un personaje con sus colores y peinado.
+  function crearSpritesJugador(c, peinado) {
     return {
-      abajo: { frames: [spriteJugador("abajo", 0, c), spriteJugador("abajo", 1, c)], sombra: 6 },
-      arriba: { frames: [spriteJugador("arriba", 0, c), spriteJugador("arriba", 1, c)], sombra: 6 },
-      lado: { frames: [spriteJugador("lado", 0, c), spriteJugador("lado", 1, c)], sombra: 6 },
+      abajo: { frames: [spriteJugador("abajo", 0, c, peinado), spriteJugador("abajo", 1, c, peinado)], sombra: 6 },
+      arriba: { frames: [spriteJugador("arriba", 0, c, peinado), spriteJugador("arriba", 1, c, peinado)], sombra: 6 },
+      lado: { frames: [spriteJugador("lado", 0, c, peinado), spriteJugador("lado", 1, c, peinado)], sombra: 6 },
     };
   }
 
@@ -543,12 +989,39 @@
     lavanda: { frames: [spriteLavanda()], sombra: 7 },
     fresa: { frames: [spriteFresa()], sombra: 0 },
     flores: { frames: [spriteFlores()], sombra: 0 },
+    retama: { frames: [spriteRetama()], sombra: 9 },
+    espino: { frames: [spriteEspino()], sombra: 11 },
+    zarza: { frames: [spriteZarza()], sombra: 10 },
+    amapola: { frames: [spriteAmapola()], sombra: 0 },
+    tomillo: { frames: [spriteTomillo()], sombra: 0 },
+    romero: { frames: [spriteRomero()], sombra: 7 },
 
     caseta: { frames: [spriteCaseta()], sombra: 0 },
     gallinero: { frames: [spriteGallinero()], sombra: 0 },
     letrina: { frames: [spriteLetrina()], sombra: 0 },
     gallina: { frames: [spriteGallina(0), spriteGallina(1)], sombra: 5 },
     oveja_negra: { frames: [spriteOveja(0), spriteOveja(1)], sombra: 7 },
+
+    // fauna silvestre: frames[0] = posado/quieto; las aves llevan además
+    // .vuelo con 2 frames de aleteo; los terrestres alternan frames[0..1]
+    gorrion: { frames: [spriteGorrion()], vuelo: [spriteGorrionVuelo(0), spriteGorrionVuelo(1)], sombra: 3 },
+    urraca: { frames: [spriteUrraca()], vuelo: [spriteUrracaVuelo(0), spriteUrracaVuelo(1)], sombra: 4 },
+    abubilla: { frames: [spriteAbubilla()], vuelo: [spriteAbubillaVuelo(0), spriteAbubillaVuelo(1)], sombra: 4 },
+    ciguena: { frames: [spriteCiguena()], vuelo: [spriteCiguenaVuelo(0), spriteCiguenaVuelo(1)], sombra: 5 },
+    perdiz: { frames: [spritePerdiz(0), spritePerdiz(1)], sombra: 4 },
+    lagartija: { frames: [spriteLagartija(0), spriteLagartija(1)], sombra: 0 },
+    lagarto: { frames: [spriteLagarto(0), spriteLagarto(1)], sombra: 0 },
+    culebra: { frames: [spriteCulebra(0), spriteCulebra(1)], sombra: 0 },
+    rana: { frames: [spriteRana(0), spriteRana(1)], sombra: 0 },
+    sapo: { frames: [spriteSapo(0), spriteSapo(1)], sombra: 0 },
+    libelula: { frames: [spriteLibelula(0)], vuelo: [spriteLibelula(1), spriteLibelula(2)], sombra: 2 },
+    oruga: { frames: [spriteOruga(0), spriteOruga(1)], sombra: 0 },
+    mariquita: { frames: [spriteMariquita(0), spriteMariquita(1)], sombra: 0 },
+    liebre: { frames: [spriteLiebre(0), spriteLiebre(1)], sombra: 5 },
+    zorro: { frames: [spriteZorro(0), spriteZorro(1)], sombra: 6 },
+    gineta: { frames: [spriteGineta(0), spriteGineta(1)], sombra: 5 },
+    comadreja: { frames: [spriteComadreja(0), spriteComadreja(1)], sombra: 4 },
+    letrero: { frames: [spriteLetrero()], sombra: 5 },
 
     jugador_abajo: { frames: [spriteJugador("abajo", 0, COLORES_JUGADOR_DEFECTO), spriteJugador("abajo", 1, COLORES_JUGADOR_DEFECTO)], sombra: 6 },
     jugador_arriba: { frames: [spriteJugador("arriba", 0, COLORES_JUGADOR_DEFECTO), spriteJugador("arriba", 1, COLORES_JUGADOR_DEFECTO)], sombra: 6 },
@@ -580,5 +1053,5 @@
     ctx.restore();
   }
 
-  Object.assign(window.Granja, { PALETA, SPRITES, dibujarSprite, dibujarSombra, hash2, crearSpritesJugador });
+  Object.assign(window.Granja, { PALETA, SPRITES, dibujarSprite, dibujarSombra, hash2, crearSpritesJugador, PEINADOS });
 })();

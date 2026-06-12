@@ -14,7 +14,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script>
-    firebase.initializeApp({
+    // si el CDN de Firebase no carga, el juego sigue en modo local
+    if (window.firebase) firebase.initializeApp({
       apiKey: "AIzaSyB7jccSMkF4T1b-8Zikl-GmsVuQUPKOIek",
       authDomain: "finkafest.firebaseapp.com",
       databaseURL: "https://finkafest-default-rtdb.europe-west1.firebasedatabase.app",
@@ -56,15 +57,11 @@
     #controles { top: 14px; right: 14px; max-width: 200px; font-size: 11px; }
     #controles b { color: var(--acento); }
 
-    #editor-toggle {
-      position: absolute; bottom: 14px; right: 14px; cursor: pointer; user-select: none;
-      font-family: "Press Start 2P", monospace; font-size: 11px; color: var(--panel-texto);
-    }
-    #editor-toggle:hover, #editor-toggle.activo { background: #6b4a31; color: var(--acento); }
-
-    #editor-panel { bottom: 14px; left: 14px; right: 160px; display: none; max-height: 40vh; overflow: auto; }
+    #editor-panel { bottom: 14px; left: 14px; right: 14px; display: none; max-height: 40vh; overflow: auto; }
     #editor-panel.activo { display: block; }
     #editor-panel h3 { margin: 0 0 6px; font-size: 11px; color: var(--acento); letter-spacing: 1px; }
+    #editor-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    #editor-cabecera h3 { margin: 0; }
     #editor-panel .fila { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; align-items: center; }
     #editor-panel button {
       background: #6b4a31; border: 2px solid var(--panel-borde); color: var(--panel-texto);
@@ -117,11 +114,11 @@
     #chat-bar button:hover { background: #6b4a31; color: var(--acento); }
     #btn-quitar-msg { display: none; }
     #btn-quitar-msg.activo { display: block; }
-    #chat-input {
+    #chat-input, #letrero-input {
       display: none; width: 260px; background: #2a1c14; color: var(--panel-texto);
       border: 3px solid var(--panel-borde); font-family: inherit; font-size: 13px; padding: 9px;
     }
-    #chat-input.activo { display: block; }
+    #chat-input.activo, #letrero-input.activo { display: block; }
 
     /* ── modal de credencial del editor ── */
     #modal-editor {
@@ -148,6 +145,41 @@
     }
     #modal-editor button.ghost { background: #6b4a31; color: var(--panel-texto); }
 
+    /* ── ficha de especie (click sobre planta/árbol/animal) ── */
+    #ficha {
+      position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%);
+      display: none; align-items: center; gap: 12px; z-index: 15;
+      background: var(--panel); border: 3px solid var(--panel-borde);
+      box-shadow: 4px 4px 0 rgba(0,0,0,.35); padding: 10px 16px; cursor: pointer;
+      max-width: 86vw;
+    }
+    #ficha.activo { display: flex; }
+    #ficha-icono { font-size: 22px; line-height: 1; }
+    #ficha-nombre { display: block; font-family: "Press Start 2P", monospace; font-size: 10px; color: var(--acento); letter-spacing: 1px; }
+    #ficha-latin { display: block; font-style: italic; font-size: 12px; color: var(--panel-texto); margin-top: 4px; }
+    @media (pointer: coarse) {
+      #ficha { bottom: 84px; }
+    }
+
+    /* ── modal de aviso: expulsión / juego abierto en otra pestaña ── */
+    #modal-aviso {
+      position: fixed; inset: 0; background: rgba(20, 14, 8, 0.72);
+      display: none; align-items: center; justify-content: center; z-index: 70;
+    }
+    #modal-aviso.activo { display: flex; }
+    #modal-aviso .caja {
+      background: var(--panel); border: 4px solid var(--panel-borde);
+      box-shadow: 6px 6px 0 rgba(0,0,0,.45); padding: 26px 30px; text-align: center;
+      max-width: 340px;
+    }
+    #modal-aviso h2 { margin: 0 0 8px; font-family: "Press Start 2P", monospace; font-size: 13px; color: var(--acento); }
+    #modal-aviso p { margin: 0 0 16px; font-size: 12px; }
+    #modal-aviso button {
+      background: var(--acento); color: #2b1c12; border: 3px solid var(--panel-borde);
+      font-family: "Press Start 2P", monospace; font-size: 10px; padding: 10px 16px; cursor: pointer;
+    }
+    #modal-aviso button:hover { background: #e0f070; }
+
     /* ── joystick táctil ── */
     #joystick {
       position: fixed; left: 18px; bottom: 78px; width: 112px; height: 112px;
@@ -168,7 +200,16 @@
       #titulo { font-size: 11px; padding: 8px 10px; }
       #estado { display: none; }
       #chat-bar { bottom: 18px; }
-      #editor-panel { right: 14px; max-height: 46vh; }
+      /* editor compacto: lámina inferior con pinceles en filas deslizables,
+         sin JSON y sin joystick/botón de fondo que estorben */
+      #editor-panel { left: 8px; right: 8px; bottom: 8px; max-height: 38vh; padding: 8px 10px; }
+      #editor-panel .pinceles {
+        flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+      }
+      #editor-panel #fila-json, #editor-json { display: none; }
+      body.modo-editor #joystick { display: none; }
+      body.modo-editor #titulo { display: none; }
     }
   </style>
 </head>
@@ -183,16 +224,25 @@
   <div class="panel" id="controles">
     <b>WASD</b> / flechas — mover<br/>
     <b>Rueda</b> — zoom<br/>
-    <b>Tab</b> — cámara libre / seguir<br/>
-    <b>E</b> — modo editor
+    <b>Tab</b> — cámara libre / seguir
   </div>
 
   <div class="panel" id="estado">Cargando La Finka…</div>
+
+  <div id="ficha">
+    <span id="ficha-icono"></span>
+    <span>
+      <b id="ficha-nombre"></b>
+      <i id="ficha-latin"></i>
+    </span>
+  </div>
 
   <div id="chat-bar">
     <button id="btn-hablar">💬 HABLAR</button>
     <input id="chat-input" maxlength="120" placeholder="escribe y pulsa Enter…" autocomplete="off" />
     <button id="btn-quitar-msg">✕ QUITAR MENSAJE</button>
+    <button id="btn-letrero">🪧 LETRERO</button>
+    <input id="letrero-input" maxlength="80" placeholder="texto del letrero y Enter…" autocomplete="off" />
   </div>
 
   <div id="modal-nombre">
@@ -216,19 +266,29 @@
     </div>
   </div>
 
+  <div id="modal-aviso">
+    <div class="caja">
+      <h2 id="aviso-titulo"></h2>
+      <p id="aviso-texto"></p>
+      <button id="btn-aviso-volver">VOLVER A ENTRAR →</button>
+    </div>
+  </div>
+
   <div id="joystick"><div id="joystick-knob"></div></div>
 
-  <div class="panel" id="editor-toggle">✎ EDITOR</div>
-
   <div class="panel" id="editor-panel">
-    <h3>TERRENO</h3>
-    <div class="fila" id="pinceles-terreno"></div>
-    <h3>OBJETOS</h3>
-    <div class="fila" id="pinceles-objetos"></div>
-    <div class="fila">
+    <div id="editor-cabecera">
+      <h3>✎ EDITOR DEL MAPA</h3>
+      <button id="btn-cerrar-editor" class="peligro">✕ CERRAR</button>
+    </div>
+    <div class="fila pinceles" id="pestanas-editor"></div>
+    <div id="contenido-categorias"></div>
+    <div class="fila pinceles">
       <button id="btn-mover">↔ MOVER / SELECCIONAR</button>
       <button id="btn-borrar" class="peligro">🗑 BORRAR</button>
-      <span style="flex:1"></span>
+      <button id="btn-expulsar" class="peligro">🚪 QUITAR PERSONA</button>
+    </div>
+    <div class="fila" id="fila-json">
       <button id="btn-exportar">⇩ EXPORTAR JSON</button>
       <button id="btn-importar">⇧ IMPORTAR JSON</button>
       <button id="btn-reset" class="peligro">↺ RESET MAPA</button>

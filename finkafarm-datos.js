@@ -216,6 +216,31 @@
     objetos.push({ id: "flores_2", tipo: "flores", col: 91, fila: 74 });
     objetos.push({ id: "flores_3", tipo: "flores", col: 79, fila: 77 });
 
+    // matorral silvestre de la zona: retamas en el claro del bosque,
+    // espinos y zarzas en los lindes, amapolas y tomillo sueltos
+    objetos.push({ id: "retama_1", tipo: "retama", col: 40, fila: 30 });
+    objetos.push({ id: "retama_2", tipo: "retama", col: 55, fila: 42 });
+    objetos.push({ id: "retama_3", tipo: "retama", col: 30, fila: 50 });
+    objetos.push({ id: "espino_1", tipo: "espino", col: 66, fila: 55 });
+    objetos.push({ id: "espino_2", tipo: "espino", col: 25, fila: 22 });
+    objetos.push({ id: "zarza_1", tipo: "zarza", col: 70, fila: 62 });
+    objetos.push({ id: "zarza_2", tipo: "zarza", col: 35, fila: 60 });
+    objetos.push({ id: "amapola_1", tipo: "amapola", col: 84, fila: 80 });
+    objetos.push({ id: "amapola_2", tipo: "amapola", col: 92, fila: 78 });
+    objetos.push({ id: "amapola_3", tipo: "amapola", col: 60, fila: 65 });
+    objetos.push({ id: "tomillo_1", tipo: "tomillo", col: 99, fila: 90 });
+    objetos.push({ id: "tomillo_2", tipo: "tomillo", col: 101, fila: 91 });
+    objetos.push({ id: "romero_1", tipo: "romero", col: 97, fila: 89 });
+    objetos.push({ id: "romero_2", tipo: "romero", col: 103, fila: 88 });
+
+    // bichos con querencia: anfibios e insectos del estanque, y una liebre
+    objetos.push({ id: "rana_1", tipo: "rana", col: 73, fila: 79 });
+    objetos.push({ id: "sapo_1", tipo: "sapo", col: 66, fila: 83 });
+    objetos.push({ id: "libelula_1", tipo: "libelula", col: 69, fila: 79 });
+    objetos.push({ id: "oruga_1", tipo: "oruga", col: 87, fila: 76 });
+    objetos.push({ id: "mariquita_1", tipo: "mariquita", col: 82, fila: 75 });
+    objetos.push({ id: "liebre_1", tipo: "liebre", col: 50, fila: 55 });
+
     return objetos;
   }
 
@@ -227,30 +252,35 @@
   const JUGADOR_DEFECTO = { col: 88, fila: 70 };
 
   // Tipos de objeto que bloquean el paso (además de agua/valla/fuera).
-  // fresa y flores son decorativas: se pueden pisar.
+  // Las plantas pisables y los animales (que ahora pasean) no bloquean.
   const OBJETOS_SOLIDOS = new Set([
     "caseta", "gallinero", "letrina", "valla",
     "pino", "roble", "encina", "olivo",
     "manzano", "peral", "cerezo", "ciruelo", "nogal", "almendro", "castano", "pistacho",
-    "endrino", "arandano", "lavanda",
-    "gallina", "oveja_negra",
+    "endrino", "arandano", "lavanda", "retama", "espino", "zarza", "romero",
+    "letrero",
   ]);
 
-  // Orden de los pinceles de objeto en el editor.
-  const TIPOS_OBJETO = [
-    "caseta", "gallinero", "letrina", "valla",
-    "pino", "roble", "encina", "olivo",
-    "manzano", "peral", "cerezo", "ciruelo", "endrino", "pistacho",
-    "nogal", "almendro", "castano",
-    "arandano", "lavanda", "fresa", "flores",
-    "gallina", "oveja_negra",
+  // Pinceles del editor agrupados por categorías. Los animales e insectos
+  // colocados son "querencias": el bicho aparece ahí y pasea alrededor.
+  const CATEGORIAS_OBJETO = [
+    ["ESCENARIO", ["caseta", "gallinero", "letrina", "valla"]],
+    ["ÁRBOLES", ["pino", "roble", "encina", "olivo", "manzano", "peral", "cerezo",
+      "ciruelo", "endrino", "pistacho", "nogal", "almendro", "castano", "espino"]],
+    ["PLANTAS", ["arandano", "lavanda", "fresa", "flores", "retama", "zarza",
+      "amapola", "tomillo", "romero"]],
+    ["ANIMALES", ["gallina", "oveja_negra", "liebre", "zorro", "gineta", "comadreja",
+      "gorrion", "urraca", "abubilla", "ciguena", "perdiz",
+      "lagartija", "lagarto", "culebra", "rana", "sapo"]],
+    ["INSECTOS", ["libelula", "oruga", "mariquita"]],
   ];
+  const TIPOS_OBJETO = CATEGORIAS_OBJETO.flatMap(([, tipos]) => tipos);
 
   window.Granja = {
     METROS_POR_CELDA, COLS, FILAS,
     POLIGONO_M, MIN_X, MIN_Y,
     CUADRICULA, TERRENO_DEFECTO, OBJETOS_DEFECTO, JUGADOR_DEFECTO,
-    TAMANOS_OBJETO, OBJETOS_SOLIDOS, TIPOS_OBJETO,
+    TAMANOS_OBJETO, OBJETOS_SOLIDOS, TIPOS_OBJETO, CATEGORIAS_OBJETO,
     celdaACoordsM, tamanoObjeto, celdasDeObjeto,
   };
 })();
