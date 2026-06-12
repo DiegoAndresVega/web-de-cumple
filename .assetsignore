@@ -1,0 +1,12 @@
+# Archivos que NO deben publicarse como assets en Cloudflare
+.git
+.gitignore
+.claude
+.wrangler
+.assetsignore
+.DS_Store
+**/.DS_Store
+node_modules
+wrangler.jsonc
+package.json
+package-lock.json
