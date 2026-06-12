@@ -152,6 +152,13 @@ function Hero() {
               >
                 EDICIONES<br/>PASADAS ↗
               </a>
+              <a
+                className="btn"
+                href="finkafarm.html"
+                style={{ background: "#3f7a9e", color: "var(--ink)", outlineColor: "#000", borderColor: "#000", fontSize: 16, padding: "16px 24px" }}
+              >
+                LA FINKA · GRANJA 🌱
+              </a>
             </div>
           </div>
 
