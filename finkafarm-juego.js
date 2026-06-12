@@ -360,12 +360,49 @@
   });
   window.addEventListener("keyup", (e) => teclas.delete(e.key.toLowerCase()));
 
+  // ── joystick táctil (móvil) ────────────────────────────────────────────
+  const joy = { activo: false, vx: 0, vy: 0 };
+  const elJoy = document.getElementById("joystick");
+  const elJoyKnob = document.getElementById("joystick-knob");
+  let joyPointerId = null;
+  function moverJoy(e) {
+    const r = elJoy.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    let dx = e.clientX - cx, dy = e.clientY - cy;
+    const max = r.width / 2 - 10;
+    const d = Math.hypot(dx, dy);
+    if (d > max) { dx = (dx / d) * max; dy = (dy / d) * max; }
+    elJoyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    const zonaMuerta = 8;
+    if (d < zonaMuerta) { joy.vx = 0; joy.vy = 0; }
+    else { joy.vx = dx / max; joy.vy = dy / max; }
+  }
+  elJoy.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    joyPointerId = e.pointerId;
+    try { elJoy.setPointerCapture(e.pointerId); } catch (err) {}
+    joy.activo = true;
+    moverJoy(e);
+  });
+  elJoy.addEventListener("pointermove", (e) => {
+    if (e.pointerId === joyPointerId) moverJoy(e);
+  });
+  function soltarJoy(e) {
+    if (e.pointerId !== joyPointerId) return;
+    joyPointerId = null;
+    joy.activo = false; joy.vx = 0; joy.vy = 0;
+    elJoyKnob.style.transform = "translate(-50%, -50%)";
+  }
+  elJoy.addEventListener("pointerup", soltarJoy);
+  elJoy.addEventListener("pointercancel", soltarJoy);
+
   function actualizarJugador(dt) {
     let dx = 0, dy = 0;
     if (teclas.has("w") || teclas.has("arrowup")) dy -= 1;
     if (teclas.has("s") || teclas.has("arrowdown")) dy += 1;
     if (teclas.has("a") || teclas.has("arrowleft")) dx -= 1;
     if (teclas.has("d") || teclas.has("arrowright")) dx += 1;
+    if (!dx && !dy && joy.activo) { dx = joy.vx; dy = joy.vy; }
 
     if (dx || dy) {
       const len = Math.hypot(dx, dy);
@@ -468,8 +505,23 @@
 
   canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
+  // pellizco táctil para zoom: seguimos los punteros activos en el canvas
+  const punteros = new Map();
+  let pellizco = null; // { dist0, zoom0 }
+  function distPunteros() {
+    const [a, b] = [...punteros.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
   canvas.addEventListener("pointerdown", (e) => {
-    canvas.setPointerCapture(e.pointerId);
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (punteros.size === 2) {
+      arrastre = null;
+      pellizco = { dist0: distPunteros(), zoom0: camara.zoom };
+      canvas.classList.remove("arrastrando");
+      return;
+    }
     if (e.button === 2 || (modo === "jugar" && e.button === 0)) {
       arrastre = { tipo: "camara", x: e.clientX, y: e.clientY };
       canvas.classList.add("arrastrando");
@@ -479,6 +531,14 @@
   });
   canvas.addEventListener("pointermove", (e) => {
     raton.x = e.clientX; raton.y = e.clientY;
+    if (punteros.has(e.pointerId)) punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pellizco && punteros.size === 2) {
+      const d = distPunteros();
+      if (d > 0 && pellizco.dist0 > 0) {
+        camara.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, pellizco.zoom0 * (d / pellizco.dist0)));
+      }
+      return;
+    }
     if (!arrastre) return;
     if (arrastre.tipo === "camara") {
       const tam = tamCelda();
@@ -490,13 +550,17 @@
       continuarAccionEditor(e);
     }
   });
-  canvas.addEventListener("pointerup", () => {
+  function soltarPuntero(e) {
+    punteros.delete(e.pointerId);
+    if (punteros.size < 2) pellizco = null;
     if (arrastre && arrastre.tipo === "objeto") { recalcularOcupacion(); guardarMapa(); }
     if (arrastre && (arrastre.tipo === "terreno" || arrastre.tipo === "borrar")) guardarMapa();
     arrastre = null;
     canvas.classList.remove("arrastrando");
     if (mapaRemotoPendiente) { aplicarMapaRemoto(mapaRemotoPendiente); mapaRemotoPendiente = null; }
-  });
+  }
+  canvas.addEventListener("pointerup", soltarPuntero);
+  canvas.addEventListener("pointercancel", soltarPuntero);
 
   // ── panel del editor ──────────────────────────────────────────────────
   const TIPOS_TERRENO = [["hierba", "HIERBA"], ["camino", "CAMINO"], ["grava", "GRAVA"], ["agua", "AGUA"]];
@@ -564,12 +628,61 @@
     guardarMapa();
   });
 
-  function toggleEditor() {
+  // El editor requiere credencial: SHA-256(contraseña + "_fkiv26") debe
+  // coincidir con _admin/hash en Firebase (mismo mecanismo que datos/notas).
+  let editorDesbloqueado = sessionStorage.getItem("finkafarm-editor-ok") === "1";
+  const elModalEditor = document.getElementById("modal-editor");
+  const elPwEditor = document.getElementById("input-pw-editor");
+  const elErrorPw = document.getElementById("error-pw-editor");
+
+  async function hashPw(pw) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw + "_fkiv26"));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  async function comprobarPwEditor() {
+    elErrorPw.textContent = "";
+    try {
+      const hash = await hashPw(elPwEditor.value);
+      const snap = await firebase.database().ref("_admin/hash").once("value");
+      if (snap.val() && snap.val() === hash) {
+        editorDesbloqueado = true;
+        try { sessionStorage.setItem("finkafarm-editor-ok", "1"); } catch (e) {}
+        elModalEditor.classList.remove("activo");
+        elPwEditor.value = "";
+        abrirCerrarEditor();
+      } else {
+        elErrorPw.textContent = "Contraseña incorrecta.";
+      }
+    } catch (e) {
+      elErrorPw.textContent = "No se pudo comprobar. ¿Sin conexión?";
+    }
+  }
+  document.getElementById("btn-pw-entrar").addEventListener("click", comprobarPwEditor);
+  document.getElementById("btn-pw-cancelar").addEventListener("click", () => {
+    elModalEditor.classList.remove("activo");
+    elPwEditor.value = "";
+    elErrorPw.textContent = "";
+  });
+  elPwEditor.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") comprobarPwEditor();
+    if (e.key === "Escape") elModalEditor.classList.remove("activo");
+  });
+
+  function abrirCerrarEditor() {
     modo = modo === "editor" ? "jugar" : "editor";
     elEditorPanel.classList.toggle("activo", modo === "editor");
     elEditorToggle.classList.toggle("activo", modo === "editor");
     document.getElementById("chat-bar").style.display = modo === "editor" ? "none" : "flex";
     if (modo === "editor") camara.libre = true;
+  }
+  function toggleEditor() {
+    if (modo !== "editor" && !editorDesbloqueado) {
+      elModalEditor.classList.add("activo");
+      elPwEditor.focus();
+      return;
+    }
+    abrirCerrarEditor();
   }
   elEditorToggle.addEventListener("click", toggleEditor);
 
