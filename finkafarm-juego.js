@@ -10,7 +10,8 @@
 (function () {
   const G = window.Granja;
   const { COLS, FILAS, CUADRICULA, TERRENO_DEFECTO, OBJETOS_DEFECTO, JUGADOR_DEFECTO,
-    tamanoObjeto, OBJETOS_SOLIDOS, TIPOS_OBJETO, SPRITES, PALETA, dibujarSprite, dibujarSombra, hash2 } = G;
+    tamanoObjeto, OBJETOS_SOLIDOS, TIPOS_OBJETO, SPRITES, PALETA, dibujarSprite, dibujarSombra, hash2,
+    crearSpritesJugador } = G;
 
   const STORAGE_KEY = "granja-mapa-v1";
   const PX = 16; // píxeles de arte por celda
@@ -25,7 +26,15 @@
   const elEditorToggle = document.getElementById("editor-toggle");
   const elJson = document.getElementById("editor-json");
 
-  // ── mapa editable (persistido en localStorage) ────────────────────────
+  // ── mapa compartido: Firebase es la fuente de verdad del mundo online ──
+  // Todos los visitantes ven y editan el MISMO mapa (finkafarm/mapa).
+  // localStorage queda como caché/fallback si Firebase no está disponible.
+  const clienteId = `c_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  let refMapa = null;
+  try {
+    if (window.firebase && firebase.database) refMapa = firebase.database().ref("finkafarm/mapa");
+  } catch (e) {}
+
   function mapaDefecto() {
     return { objetos: OBJETOS_DEFECTO.map((o) => ({ ...o })), terreno: {} };
   }
@@ -40,8 +49,40 @@
     return mapaDefecto();
   }
   let mapa = cargarMapa();
+
+  let timerGuardado = null;
   function guardarMapa() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mapa)); } catch (e) {}
+    if (!refMapa) return;
+    clearTimeout(timerGuardado);
+    timerGuardado = setTimeout(() => {
+      refMapa.set({
+        objetos: mapa.objetos,
+        terreno: mapa.terreno,
+        clienteId,
+        ts: Date.now(),
+      }).catch(() => {});
+    }, 600);
+  }
+
+  // Cambios remotos: se aplican al instante salvo que estés arrastrando algo
+  // en el editor (se difieren hasta soltar, para no pisarte a mitad de gesto).
+  let mapaRemotoPendiente = null;
+  function aplicarMapaRemoto(d) {
+    // Firebase elimina objetos/arrays vacíos al guardar: restituir las formas
+    mapa = { objetos: d.objetos || [], terreno: d.terreno || {} };
+    recalcularOcupacion();
+    reconstruirMundo();
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mapa)); } catch (e) {}
+  }
+  if (refMapa) {
+    refMapa.on("value", (snap) => {
+      const d = snap.val();
+      if (!d) return; // aún no hay mapa publicado: se usa el local/por defecto
+      if (d.clienteId === clienteId) return; // eco de nuestra propia escritura
+      if (arrastre) { mapaRemotoPendiente = d; return; }
+      aplicarMapaRemoto(d);
+    });
   }
 
   let ocupacion = new Map();
@@ -454,6 +495,7 @@
     if (arrastre && (arrastre.tipo === "terreno" || arrastre.tipo === "borrar")) guardarMapa();
     arrastre = null;
     canvas.classList.remove("arrastrando");
+    if (mapaRemotoPendiente) { aplicarMapaRemoto(mapaRemotoPendiente); mapaRemotoPendiente = null; }
   });
 
   // ── panel del editor ──────────────────────────────────────────────────
@@ -515,7 +557,7 @@
     }
   });
   document.getElementById("btn-reset").addEventListener("click", () => {
-    if (!confirm("¿Reiniciar el mapa a los valores por defecto? Se perderán los cambios guardados.")) return;
+    if (!confirm("¿Reiniciar el mapa a los valores por defecto? OJO: el mapa es compartido, esto lo reinicia para TODOS.")) return;
     mapa = mapaDefecto();
     recalcularOcupacion();
     reconstruirMundo();
@@ -526,9 +568,209 @@
     modo = modo === "editor" ? "jugar" : "editor";
     elEditorPanel.classList.toggle("activo", modo === "editor");
     elEditorToggle.classList.toggle("activo", modo === "editor");
+    document.getElementById("chat-bar").style.display = modo === "editor" ? "none" : "flex";
     if (modo === "editor") camara.libre = true;
   }
   elEditorToggle.addEventListener("click", toggleEditor);
+
+  // ── personajes online ──────────────────────────────────────────────────
+  // Cada visitante es un personaje con nombre y aspecto aleatorio (único
+  // entre los conectados). Presencia en finkafarm/online/<clienteId>;
+  // onDisconnect la borra al salir. Los demás se interpolan suavemente.
+  const PIELES = [
+    "#efc296", "#d8a87c", "#a8744a", "#7a4f2c", // tonos humanos
+    "#7ddb6a", "#f0a8c0", "#7ab8f0", "#c89af0", // verde, rosa, azul, lila
+    "#f0d860", "#f08a5a", "#9af0d8", "#e06a6a", // amarillo, naranja, menta, rojo
+  ];
+  const PELOS = ["#5c3a22", "#2b2724", "#f2cf4e", "#e04848", "#8a55b0", "#3e7ca6", "#f7f3e8", "#3a7d44", "#f08ab8", "#e8923c"];
+  const CAMISAS = ["#3e7ca6", "#e04848", "#3a7d44", "#f2cf4e", "#8a55b0", "#e8923c", "#2b2724", "#f0a8c0", "#26a69a", "#7a4f9e"];
+  const PANTALONES = ["#54422e", "#2e4a66", "#3a3833", "#6e3434", "#3e5e3a", "#5a4a7a"];
+
+  function oscurecer(hex, factor) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.round(((n >> 16) & 255) * factor);
+    const v = Math.round(((n >> 8) & 255) * factor);
+    const b = Math.round((n & 255) * factor);
+    return "#" + ((r << 16) | (v << 8) | b).toString(16).padStart(6, "0");
+  }
+  function aspectoAleatorio() {
+    const el = (a) => a[Math.floor(Math.random() * a.length)];
+    return { piel: el(PIELES), pelo: el(PELOS), camisa: el(CAMISAS), pantalon: el(PANTALONES) };
+  }
+  function coloresDeAspecto(a) {
+    return {
+      piel: a.piel, piel_d: oscurecer(a.piel, 0.8), pelo: a.pelo,
+      camisa: a.camisa, camisa_d: oscurecer(a.camisa, 0.75),
+      pantalon: a.pantalon, bota: oscurecer(a.pantalon, 0.6),
+    };
+  }
+
+  let miAspecto = aspectoAleatorio();
+  let spritesYo = crearSpritesJugador(coloresDeAspecto(miAspecto));
+  let miNombre = "";
+  let miMensaje = null;
+  let refYo = null;
+  let refOnline = null;
+  try {
+    if (window.firebase && firebase.database) refOnline = firebase.database().ref("finkafarm/online");
+  } catch (e) {}
+  const otros = new Map(); // id → estado del jugador remoto (+pos interpolada)
+
+  function entrarOnline(nombre) {
+    miNombre = nombre;
+    if (!refOnline) return;
+    refOnline.once("value").then((snap) => {
+      // aspecto único entre los conectados
+      const conectados = snap.val() || {};
+      const usados = new Set(Object.values(conectados).map((p) => JSON.stringify(p.aspecto || {})));
+      let intentos = 0;
+      while (usados.has(JSON.stringify(miAspecto)) && intentos++ < 40) miAspecto = aspectoAleatorio();
+      spritesYo = crearSpritesJugador(coloresDeAspecto(miAspecto));
+
+      refYo = refOnline.child(clienteId);
+      refYo.onDisconnect().remove();
+      refYo.set({
+        nombre, aspecto: miAspecto,
+        x: +jugador.x.toFixed(2), y: +jugador.y.toFixed(2),
+        dir: jugador.dir, espejo: jugador.espejo, moviendo: false,
+        ts: firebase.database.ServerValue.TIMESTAMP,
+      });
+      setInterval(sincronizarYo, 150);
+      setInterval(() => refYo.update({ ts: firebase.database.ServerValue.TIMESTAMP }).catch(() => {}), 30000);
+    }).catch(() => {});
+  }
+
+  let ultimoEnviado = "";
+  function sincronizarYo() {
+    if (!refYo) return;
+    const datos = {
+      x: +jugador.x.toFixed(2), y: +jugador.y.toFixed(2),
+      dir: jugador.dir, espejo: jugador.espejo, moviendo: jugador.moviendo,
+    };
+    const firma = JSON.stringify(datos);
+    if (firma === ultimoEnviado) return;
+    ultimoEnviado = firma;
+    refYo.update(datos).catch(() => {});
+  }
+
+  if (refOnline) {
+    refOnline.on("value", (snap) => {
+      const v = snap.val() || {};
+      for (const id of Object.keys(v)) {
+        if (id === clienteId) continue;
+        const p = v[id];
+        let o = otros.get(id);
+        if (!o) { o = { rx: p.x, ry: p.y }; otros.set(id, o); }
+        const aspectoJson = JSON.stringify(p.aspecto || {});
+        if (o.aspectoJson !== aspectoJson) {
+          o.aspectoJson = aspectoJson;
+          o.sprites = crearSpritesJugador(coloresDeAspecto(p.aspecto || aspectoAleatorio()));
+        }
+        o.nombre = p.nombre || "?";
+        o.x = p.x; o.y = p.y;
+        o.dir = p.dir || "abajo"; o.espejo = !!p.espejo; o.moviendo = !!p.moviendo;
+        o.mensaje = p.mensaje || null;
+      }
+      for (const id of [...otros.keys()]) if (!v[id]) otros.delete(id);
+    });
+  }
+
+  function actualizarOtros(dt) {
+    for (const o of otros.values()) {
+      o.rx += (o.x - o.rx) * Math.min(1, dt * 10);
+      o.ry += (o.y - o.ry) * Math.min(1, dt * 10);
+    }
+  }
+
+  // ── chat: bocadillo sobre la cabeza ────────────────────────────────────
+  const elChatInput = document.getElementById("chat-input");
+  const btnHablar = document.getElementById("btn-hablar");
+  const btnQuitarMsg = document.getElementById("btn-quitar-msg");
+
+  btnHablar.addEventListener("click", () => {
+    elChatInput.classList.toggle("activo");
+    if (elChatInput.classList.contains("activo")) elChatInput.focus();
+  });
+  elChatInput.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Escape") { elChatInput.classList.remove("activo"); elChatInput.blur(); }
+    if (e.key !== "Enter") return;
+    const texto = elChatInput.value.trim().slice(0, 120);
+    if (!texto) return;
+    miMensaje = texto;
+    if (refYo) refYo.update({ mensaje: texto }).catch(() => {});
+    btnQuitarMsg.classList.add("activo");
+    elChatInput.value = "";
+    elChatInput.classList.remove("activo");
+    elChatInput.blur();
+  });
+  btnQuitarMsg.addEventListener("click", () => {
+    miMensaje = null;
+    if (refYo) refYo.update({ mensaje: null }).catch(() => {});
+    btnQuitarMsg.classList.remove("activo");
+  });
+
+  // ── modal de nombre ────────────────────────────────────────────────────
+  const elModal = document.getElementById("modal-nombre");
+  const elInputNombre = document.getElementById("input-nombre");
+  elInputNombre.value = localStorage.getItem("finkafarm-nombre") || "";
+  function confirmarNombre() {
+    const n = elInputNombre.value.trim().slice(0, 16) || "PEÑA";
+    try { localStorage.setItem("finkafarm-nombre", n); } catch (e) {}
+    elModal.style.display = "none";
+    entrarOnline(n);
+  }
+  document.getElementById("btn-entrar").addEventListener("click", confirmarNombre);
+  elInputNombre.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") confirmarNombre();
+  });
+  elInputNombre.focus();
+
+  // ── rótulos sobre el mapa: nombres y bocadillos ────────────────────────
+  function dibujarNombre(nombre, sx, sy) {
+    ctx.font = "bold 11px 'Space Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(20,14,8,0.8)";
+    ctx.strokeText(nombre, sx, sy);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(nombre, sx, sy);
+  }
+  function dibujarBocadillo(texto, sx, syCabeza) {
+    ctx.font = "11px 'Space Mono', monospace";
+    const maxCar = 22;
+    const lineas = [];
+    let linea = "";
+    for (const palabra of texto.split(" ")) {
+      if ((linea + " " + palabra).trim().length > maxCar && linea) { lineas.push(linea); linea = palabra; }
+      else linea = linea ? linea + " " + palabra : palabra;
+    }
+    if (linea) lineas.push(linea);
+    const anchoTxt = Math.max(...lineas.map((t) => ctx.measureText(t).width));
+    const pad = 8, lh = 14;
+    const bw = anchoTxt + pad * 2;
+    const bh = lineas.length * lh + pad * 2 - 4;
+    const bx = sx - bw / 2;
+    const by = syCabeza - bh - 12;
+    ctx.fillStyle = "#fffdf2";
+    ctx.strokeStyle = "#2b1c12";
+    ctx.lineWidth = 2;
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeRect(bx, by, bw, bh);
+    // colita del bocadillo
+    ctx.beginPath();
+    ctx.moveTo(sx - 5, by + bh);
+    ctx.lineTo(sx + 5, by + bh);
+    ctx.lineTo(sx, by + bh + 7);
+    ctx.closePath();
+    ctx.fillStyle = "#fffdf2";
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#2b1c12";
+    ctx.textAlign = "center";
+    lineas.forEach((t, i) => ctx.fillText(t, sx, by + pad + 9 + i * lh));
+  }
 
   // ── render ────────────────────────────────────────────────────────────
   function dibujar(tiempo) {
@@ -590,14 +832,46 @@
       orden: jugador.y + 0.5,
       dibujar: () => {
         const [x, y] = celdaAPantalla(jugador.x - 0.5, jugador.y - 0.5);
-        const grupo = SPRITES["jugador_" + jugador.dir];
+        const grupo = spritesYo[jugador.dir];
         const frIdx = jugador.moviendo ? Math.floor(jugador.animT * 8) % 2 : 0;
         dibujarSombra(ctx, x + tam / 2, y + tam - camara.zoom, grupo.sombra, camara.zoom);
         dibujarSprite(ctx, grupo.frames[frIdx], x, y, tam, tam, camara.zoom, jugador.espejo);
       },
     });
+    // jugadores online
+    for (const o of otros.values()) {
+      if (o.rx < colMin - 1 || o.rx > colMax + 1 || o.ry < filaMin - 1 || o.ry > filaMax + 1) continue;
+      const rem = o;
+      dibujables.push({
+        orden: rem.ry + 0.5,
+        dibujar: () => {
+          const [x, y] = celdaAPantalla(rem.rx - 0.5, rem.ry - 0.5);
+          const grupo = (rem.sprites || spritesYo)[rem.dir] || (rem.sprites || spritesYo).abajo;
+          const frIdx = rem.moviendo ? Math.floor(tiempo * 8) % 2 : 0;
+          dibujarSombra(ctx, x + tam / 2, y + tam - camara.zoom, grupo.sombra, camara.zoom);
+          dibujarSprite(ctx, grupo.frames[frIdx], x, y, tam, tam, camara.zoom, rem.espejo);
+        },
+      });
+    }
     dibujables.sort((a, b) => a.orden - b.orden);
     for (const d of dibujables) d.dibujar();
+
+    // nombres y bocadillos por encima de todo
+    const rotulos = [];
+    if (miNombre) rotulos.push({ nombre: miNombre, x: jugador.x, y: jugador.y, mensaje: miMensaje });
+    for (const o of otros.values()) {
+      if (o.rx < colMin - 1 || o.rx > colMax + 1 || o.ry < filaMin - 1 || o.ry > filaMax + 1) continue;
+      rotulos.push({ nombre: o.nombre, x: o.rx, y: o.ry, mensaje: o.mensaje });
+    }
+    for (const r of rotulos) {
+      const [sx, syPies] = celdaAPantalla(r.x, r.y + 0.5);
+      dibujarNombre(r.nombre, sx, syPies + 13);
+    }
+    for (const r of rotulos) {
+      if (!r.mensaje) continue;
+      const [sx, syPies] = celdaAPantalla(r.x, r.y + 0.5);
+      dibujarBocadillo(r.mensaje, sx, syPies - 26 * camara.zoom);
+    }
 
     // overlay del editor: rejilla sutil + celda bajo el cursor
     if (modo === "editor") {
@@ -636,6 +910,7 @@
     ultimo = ahora;
     tAcum += dt;
     actualizarJugador(dt);
+    actualizarOtros(dt);
     actualizarCamara();
     dibujar(tAcum);
     requestAnimationFrame(loop);

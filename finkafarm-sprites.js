@@ -462,37 +462,57 @@
     return frame(g);
   }
 
-  // ── jugador ────────────────────────────────────────────────────────────
-  function spriteJugador(dir, frameIdx) {
+  // ── jugador (parametrizado por colores, para personajes online) ───────
+  // c: { piel, piel_d, pelo, camisa, camisa_d, pantalon, bota } en hex
+  // (gridACanvas acepta colores que no estén en la PALETA). Los ojos llevan
+  // blanco + pupila oscura para que se vean sobre cualquier color de piel.
+  const BLANCO_OJO = "#ffffff", PUPILA = "#1a1a1a";
+  function spriteJugador(dir, frameIdx, c) {
     const g = crearGrid(16, 26);
     const pasoIzq = frameIdx === 0 ? 0 : 1, pasoDer = frameIdx === 0 ? 1 : 0;
-    rect(g, 5, 18 + pasoIzq, 3, 6 - pasoIzq, "pantalon");
-    rect(g, 9, 18 + pasoDer, 3, 6 - pasoDer, "pantalon");
-    rect(g, 5, 23 + pasoIzq, 3, 2, "bota");
-    rect(g, 9, 23 + pasoDer, 3, 2, "bota");
-    rect(g, 4, 10, 9, 9, "camisa");
-    rect(g, 4, 10, 9, 2, "camisa_d");
-    rect(g, 4, 17, 9, 2, "pantalon");
-    rect(g, 2, 11, 2, 7, "camisa_d"); punto(g, 2, 17, "piel");
-    rect(g, 13, 11, 2, 7, "camisa_d"); punto(g, 14, 17, "piel");
-    circulo(g, 8, 5, 4.5, "piel");
+    rect(g, 5, 18 + pasoIzq, 3, 6 - pasoIzq, c.pantalon);
+    rect(g, 9, 18 + pasoDer, 3, 6 - pasoDer, c.pantalon);
+    rect(g, 5, 23 + pasoIzq, 3, 2, c.bota);
+    rect(g, 9, 23 + pasoDer, 3, 2, c.bota);
+    rect(g, 4, 10, 9, 9, c.camisa);
+    rect(g, 4, 10, 9, 2, c.camisa_d);
+    rect(g, 4, 17, 9, 2, c.pantalon);
+    rect(g, 2, 11, 2, 7, c.camisa_d); punto(g, 2, 17, c.piel);
+    rect(g, 13, 11, 2, 7, c.camisa_d); punto(g, 14, 17, c.piel);
+    circulo(g, 8, 5, 4.5, c.piel);
     if (dir === "abajo") {
-      rect(g, 3, 1, 11, 3, "pelo");
-      punto(g, 3, 4, "pelo"); punto(g, 13, 4, "pelo");
-      punto(g, 6, 5, "negro"); punto(g, 10, 5, "negro");
-      punto(g, 6, 8, "piel_d"); punto(g, 10, 8, "piel_d");
-      rect(g, 7, 8, 3, 1, "piel_d");
+      rect(g, 3, 1, 11, 3, c.pelo);
+      punto(g, 3, 4, c.pelo); punto(g, 13, 4, c.pelo);
+      punto(g, 5, 5, BLANCO_OJO); punto(g, 6, 5, PUPILA);
+      punto(g, 10, 5, PUPILA); punto(g, 11, 5, BLANCO_OJO);
+      punto(g, 6, 8, c.piel_d); punto(g, 10, 8, c.piel_d);
+      rect(g, 7, 8, 3, 1, c.piel_d);
     } else if (dir === "arriba") {
-      rect(g, 3, 0, 11, 8, "pelo");
-      rect(g, 4, 7, 9, 1, "pelo");
+      rect(g, 3, 0, 11, 8, c.pelo);
+      rect(g, 4, 7, 9, 1, c.pelo);
     } else {
-      rect(g, 3, 1, 11, 4, "pelo");
-      punto(g, 3, 5, "pelo");
-      punto(g, 11, 5, "negro");
-      punto(g, 13, 7, "piel_d");
+      rect(g, 3, 1, 11, 4, c.pelo);
+      punto(g, 3, 5, c.pelo);
+      punto(g, 10, 5, BLANCO_OJO); punto(g, 11, 5, PUPILA);
+      punto(g, 13, 7, c.piel_d);
     }
     return frame(g);
   }
+
+  // Juego completo de sprites de un personaje con sus colores.
+  function crearSpritesJugador(c) {
+    return {
+      abajo: { frames: [spriteJugador("abajo", 0, c), spriteJugador("abajo", 1, c)], sombra: 6 },
+      arriba: { frames: [spriteJugador("arriba", 0, c), spriteJugador("arriba", 1, c)], sombra: 6 },
+      lado: { frames: [spriteJugador("lado", 0, c), spriteJugador("lado", 1, c)], sombra: 6 },
+    };
+  }
+
+  const COLORES_JUGADOR_DEFECTO = {
+    piel: PALETA.piel, piel_d: PALETA.piel_d, pelo: PALETA.pelo,
+    camisa: PALETA.camisa, camisa_d: PALETA.camisa_d,
+    pantalon: PALETA.pantalon, bota: PALETA.bota,
+  };
 
   // ── registro de sprites ───────────────────────────────────────────────
   const SPRITES = {
@@ -530,9 +550,9 @@
     gallina: { frames: [spriteGallina(0), spriteGallina(1)], sombra: 5 },
     oveja_negra: { frames: [spriteOveja(0), spriteOveja(1)], sombra: 7 },
 
-    jugador_abajo: { frames: [spriteJugador("abajo", 0), spriteJugador("abajo", 1)], sombra: 6 },
-    jugador_arriba: { frames: [spriteJugador("arriba", 0), spriteJugador("arriba", 1)], sombra: 6 },
-    jugador_lado: { frames: [spriteJugador("lado", 0), spriteJugador("lado", 1)], sombra: 6 },
+    jugador_abajo: { frames: [spriteJugador("abajo", 0, COLORES_JUGADOR_DEFECTO), spriteJugador("abajo", 1, COLORES_JUGADOR_DEFECTO)], sombra: 6 },
+    jugador_arriba: { frames: [spriteJugador("arriba", 0, COLORES_JUGADOR_DEFECTO), spriteJugador("arriba", 1, COLORES_JUGADOR_DEFECTO)], sombra: 6 },
+    jugador_lado: { frames: [spriteJugador("lado", 0, COLORES_JUGADOR_DEFECTO), spriteJugador("lado", 1, COLORES_JUGADOR_DEFECTO)], sombra: 6 },
   };
 
   function dibujarSprite(ctx, fr, fx, fy, fw, fh, escala, espejo) {
@@ -560,5 +580,5 @@
     ctx.restore();
   }
 
-  Object.assign(window.Granja, { PALETA, SPRITES, dibujarSprite, dibujarSombra, hash2 });
+  Object.assign(window.Granja, { PALETA, SPRITES, dibujarSprite, dibujarSombra, hash2, crearSpritesJugador });
 })();

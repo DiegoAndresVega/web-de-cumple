@@ -10,6 +10,21 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
 
+  <!-- Firebase: mapa compartido del mundo online -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyB7jccSMkF4T1b-8Zikl-GmsVuQUPKOIek",
+      authDomain: "finkafest.firebaseapp.com",
+      databaseURL: "https://finkafest-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "finkafest",
+      storageBucket: "finkafest.firebasestorage.app",
+      messagingSenderId: "183200972301",
+      appId: "1:183200972301:web:e315875d49a96762849f44"
+    });
+  </script>
+
   <style>
     :root {
       --cielo: #8fd3f4;
@@ -65,6 +80,48 @@
     }
 
     #estado { bottom: 14px; left: 14px; font-size: 11px; }
+
+    /* ── modal de nombre ── */
+    #modal-nombre {
+      position: fixed; inset: 0; background: rgba(20, 14, 8, 0.72);
+      display: flex; align-items: center; justify-content: center; z-index: 50;
+    }
+    #modal-nombre .caja {
+      background: var(--panel); border: 4px solid var(--panel-borde);
+      box-shadow: 6px 6px 0 rgba(0,0,0,.45); padding: 26px 30px; text-align: center;
+      max-width: 340px;
+    }
+    #modal-nombre h2 { margin: 0 0 8px; font-family: "Press Start 2P", monospace; font-size: 14px; color: var(--acento); }
+    #modal-nombre p { margin: 0 0 16px; font-size: 12px; }
+    #modal-nombre input {
+      width: 100%; box-sizing: border-box; background: #2a1c14; color: var(--panel-texto);
+      border: 2px solid var(--panel-borde); font-family: inherit; font-size: 14px;
+      padding: 10px; text-align: center; margin-bottom: 14px;
+    }
+    #modal-nombre button {
+      background: var(--acento); color: #2b1c12; border: 3px solid var(--panel-borde);
+      font-family: "Press Start 2P", monospace; font-size: 11px; padding: 10px 18px; cursor: pointer;
+    }
+    #modal-nombre button:hover { background: #e0f070; }
+
+    /* ── barra de chat ── */
+    #chat-bar {
+      position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; align-items: center; z-index: 10;
+    }
+    #chat-bar button {
+      background: var(--panel); color: var(--panel-texto); border: 3px solid var(--panel-borde);
+      box-shadow: 3px 3px 0 rgba(0,0,0,.35); font-family: inherit; font-size: 12px;
+      padding: 9px 14px; cursor: pointer; white-space: nowrap;
+    }
+    #chat-bar button:hover { background: #6b4a31; color: var(--acento); }
+    #btn-quitar-msg { display: none; }
+    #btn-quitar-msg.activo { display: block; }
+    #chat-input {
+      display: none; width: 260px; background: #2a1c14; color: var(--panel-texto);
+      border: 3px solid var(--panel-borde); font-family: inherit; font-size: 13px; padding: 9px;
+    }
+    #chat-input.activo { display: block; }
   </style>
 </head>
 <body>
@@ -83,6 +140,22 @@
   </div>
 
   <div class="panel" id="estado">Cargando La Finka…</div>
+
+  <div id="chat-bar">
+    <button id="btn-hablar">💬 HABLAR</button>
+    <input id="chat-input" maxlength="120" placeholder="escribe y pulsa Enter…" autocomplete="off" />
+    <button id="btn-quitar-msg">✕ QUITAR MENSAJE</button>
+  </div>
+
+  <div id="modal-nombre">
+    <div class="caja">
+      <h2>FINKAFARM</h2>
+      <p>¿Cómo te llamas, pareja? Tu nombre se verá bajo tu personaje.</p>
+      <input id="input-nombre" maxlength="16" placeholder="tu nombre" autocomplete="off" />
+      <br/>
+      <button id="btn-entrar">ENTRAR A LA FINKA →</button>
+    </div>
+  </div>
 
   <div class="panel" id="editor-toggle">✎ EDITOR</div>
 
