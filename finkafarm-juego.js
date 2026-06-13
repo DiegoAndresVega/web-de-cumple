@@ -1477,7 +1477,7 @@
   // Si al entrar escribes "diego**" / "isthar**" (con asteriscos al final),
   // tu personaje usa el asset personalizado correspondiente como skin; bajo
   // el muñeco se ve solo "diego" / "isthar" (sin asteriscos).
-  const PERSONAJES_SECRETOS = { diego: "diego_maximus", isthar: "isthar_maximus" };
+  const PERSONAJES_SECRETOS = { diego: "diego", isthar: "isthar" };
   function personajeSecreto(nombreEntrada) {
     const base = nombreEntrada.replace(/\*+$/, "");
     if (base === nombreEntrada) return null; // sin asteriscos → nombre normal
