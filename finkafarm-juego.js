@@ -615,7 +615,7 @@
     endrino: "ENDRINO", pistacho: "PISTACHO", nogal: "NOGAL", almendro: "ALMENDRO",
     castano: "CASTAÑO", arandano: "ARÁNDANO", lavanda: "LAVANDA", fresa: "FRESA",
     flores: "FLORES", retama: "RETAMA", espino: "ESPINO", zarza: "ZARZA",
-    amapola: "AMAPOLA", tomillo: "TOMILLO", romero: "ROMERO",
+    amapola: "AMAPOLA", tomillo: "TOMILLO", romero: "ROMERO", euforbio: "EUFORBIO",
     gallina: "GALLINA", oveja_negra: "OVEJA", liebre: "LIEBRE",
     zorro: "ZORRO", gineta: "GINETA", comadreja: "COMADREJA",
     gorrion: "GORRIÓN", urraca: "URRACA", abubilla: "ABUBILLA", ciguena: "CIGÜEÑA",
@@ -1189,13 +1189,28 @@
     elAgua.type = "checkbox";
     const elAlturaMax = document.createElement("input");
     elAlturaMax.type = "number"; elAlturaMax.step = "0.1"; elAlturaMax.min = "0"; elAlturaMax.value = "1.6";
+    // planta nutricia: si se elige una, el bicho solo aparece muy cerca de
+    // ejemplares de ese tipo colocados en el mapa (si no hay ninguno, no sale)
+    const elCercaDe = document.createElement("select");
+    const optNinguna = document.createElement("option");
+    optNinguna.value = ""; optNinguna.textContent = "— ninguna —";
+    elCercaDe.appendChild(optNinguna);
+    for (const [titulo, tipos] of CATEGORIAS_OBJETO) {
+      if (titulo !== "PLANTAS" && titulo !== "ÁRBOLES") continue;
+      for (const t of tipos) {
+        const opt = document.createElement("option");
+        opt.value = t; opt.textContent = ETIQUETAS_OBJETO[t] || t;
+        elCercaDe.appendChild(opt);
+      }
+    }
 
     const filaFauna1 = document.createElement("div");
     filaFauna1.className = "ac-fila";
     filaFauna1.append(campo("Modo", elModo), campo("Velocidad", elVel), campo("Radio de paseo", elRadio));
     const filaFauna2 = document.createElement("div");
     filaFauna2.className = "ac-fila";
-    filaFauna2.append(campo("Rareza (0-1)", elProb), campo("Máximo a la vez", elMax), campo("Junto al agua", elAgua));
+    filaFauna2.append(campo("Rareza (0-1)", elProb), campo("Máximo a la vez", elMax), campo("Junto al agua", elAgua),
+      campo("Planta nutricia", elCercaDe));
     const filaFauna3 = document.createElement("div");
     filaFauna3.className = "ac-fila";
     filaFauna3.append(campo("Vida mín (s)", elVidaMin), campo("Vida máx (s)", elVidaMax),
@@ -1251,6 +1266,7 @@
         elAgua.checked = !!fn.agua;
         elAlturaMax.value = val(fn.alturaMax, 1.6);
       }
+      elCercaDe.value = (fn && fn.cercaDe) || "";
       campoAltura.style.display = (fn && fn.modo === "volador") ? "" : "none";
       actualizarVisibilidadFauna();
       lienzo.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1280,6 +1296,7 @@
           espera: [numero(elEsperaMin, 1), numero(elEsperaMax, 5)],
           agua: elAgua.checked,
         };
+        if (elCercaDe.value) fauna.cercaDe = elCercaDe.value;
         if (fauna.modo === "volador") fauna.alturaMax = numero(elAlturaMax, 1.6);
       }
       return {
@@ -1765,6 +1782,7 @@
     amapola: ["Amapola", "Papaver rhoeas", "🌺"],
     tomillo: ["Tomillo salsero", "Thymus zygis", "🌿"],
     romero: ["Romero", "Salvia rosmarinus", "🌿"],
+    euforbio: ["Lechetrezna serrada", "Euphorbia serrata", "🌿"],
     gallina: ["Gallina", "Gallus gallus domesticus", "🐔"],
     oveja_negra: ["Oveja negra", "Ovis aries", "🐑"],
     gorrion: ["Gorrión común", "Passer domesticus", "🐦"],
@@ -1889,6 +1907,22 @@
     }
     return null;
   }
+  // punto muy cercano a un objeto del mapa de un tipo dado (p. ej. la planta
+  // nutricia de un insecto): si no hay ninguno colocado, no aparece nadie
+  const RADIO_CERCA_DE = 2;
+  function puntoCercaDe(tipo) {
+    const objetivos = mapa.objetos.filter((o) => o.tipo === tipo);
+    if (!objetivos.length) return null;
+    for (let i = 0; i < 30; i++) {
+      const o = objetivos[Math.floor(Math.random() * objetivos.length)];
+      const dc = Math.floor(Math.random() * (RADIO_CERCA_DE * 2 + 1)) - RADIO_CERCA_DE;
+      const df = Math.floor(Math.random() * (RADIO_CERCA_DE * 2 + 1)) - RADIO_CERCA_DE;
+      const c = o.col + dc, f = o.fila + df;
+      if (transitable(c, f)) return [c + 0.5, f + 0.5];
+    }
+    const o = objetivos[Math.floor(Math.random() * objetivos.length)];
+    return [o.col + 0.5, o.fila + 0.5];
+  }
   // tirada de aparición: cada especie sale según su rareza, hasta su tope
   function pasoAparicion(factor = 1) {
     const cuenta = {};
@@ -1896,7 +1930,9 @@
     for (const [especie, def] of Object.entries(ESPECIES_FAUNA)) {
       if (!def.max || (cuenta[especie] || 0) >= def.max) continue;
       if (Math.random() > def.prob * factor) continue;
-      const p = def.agua ? puntoDeAgua(def.modo === "terrestre") : celdaFaunaAleatoria();
+      const p = def.cercaDe ? puntoCercaDe(def.cercaDe)
+        : def.agua ? puntoDeAgua(def.modo === "terrestre")
+        : celdaFaunaAleatoria();
       if (!p) continue;
       const b = crearBicho(especie, p[0], p[1]);
       b.vida = def.vida[0] + Math.random() * (def.vida[1] - def.vida[0]);

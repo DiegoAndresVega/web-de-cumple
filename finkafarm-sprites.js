@@ -46,6 +46,7 @@
     amapola_r: "#d83a30", amapola_d: "#7e1e18",
     tomillo_v: "#7e9a6e", tomillo_d: "#647e57", tomillo_f: "#d8a8c8",
     romero_v: "#5e8056", romero_d: "#4a6644", romero_l: "#7a9c70", romero_f: "#9ab4e6",
+    euforbio_v: "#7a9a7c", euforbio_d: "#5f7a60", euforbio_f: "#d8e068", // ciatios verde-amarillentos
     // animales
     blanco: "#f7f3e8", crema: "#e3d8bd", cresta: "#e04848", pico: "#efa23b",
     negro: "#2b2724", negro_l: "#3d3833", gris: "#6b645c", rosa_oveja: "#e8b4ac",
@@ -463,6 +464,28 @@
     punto(g, 5, 4, "tomillo_v"); punto(g, 13, 4, "tomillo_d");
     for (const [x, y] of [[4, 4], [8, 2], [12, 3], [15, 5], [6, 6], [10, 5], [14, 7]]) {
       punto(g, x, y, "tomillo_f");
+    }
+    return frame(g);
+  }
+  function spriteEuforbio() {
+    // Euphorbia serrata: mata erguida de hojas estrechas serradas, remata
+    // en umbelas de ciatios verde-amarillentos (su rasgo más vistoso, y la
+    // planta nutricia de la oruga de Hyles euphorbiae)
+    const g = crearGrid(16, 16);
+    circulo(g, 8, 13, 4, "euforbio_d");
+    circulo(g, 5, 12, 3, "euforbio_v");
+    circulo(g, 11, 12, 3, "euforbio_v");
+    const tallos = [[4, 9], [7, 11], [10, 10], [13, 8]];
+    for (const [x, h] of tallos) {
+      rect(g, x, 13 - h, 1, h, "euforbio_v");
+      for (let i = 1; i < h - 1; i += 2) {
+        punto(g, x - 1, 13 - h + i, "euforbio_v");
+        punto(g, x + 1, 13 - h + i + 1, "euforbio_d");
+      }
+    }
+    for (const [x, h] of tallos) {
+      rect(g, x - 1, 12 - h, 3, 2, "euforbio_f");
+      punto(g, x, 11 - h, "euforbio_f");
     }
     return frame(g);
   }
@@ -1126,6 +1149,7 @@
     amapola: { frames: [spriteAmapola()], sombra: 0 },
     tomillo: { frames: [spriteTomillo()], sombra: 0 },
     romero: { frames: [spriteRomero()], sombra: 7 },
+    euforbio: { frames: [spriteEuforbio()], sombra: 5 },
 
     caseta: { frames: [spriteCaseta()], sombra: 0 },
     gallinero: { frames: [spriteGallinero()], sombra: 0 },

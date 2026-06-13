@@ -258,7 +258,7 @@
     ["ÁRBOLES", ["pino", "roble", "encina", "olivo", "manzano", "peral", "cerezo",
       "ciruelo", "endrino", "pistacho", "nogal", "almendro", "castano", "espino"]],
     ["PLANTAS", ["arandano", "lavanda", "fresa", "flores", "retama", "zarza",
-      "amapola", "tomillo", "romero"]],
+      "amapola", "tomillo", "romero", "euforbio"]],
     ["ANIMALES", ["gallina", "oveja_negra", "liebre", "zorro", "gineta", "comadreja",
       "gorrion", "urraca", "abubilla", "ciguena", "aguila", "perdiz",
       "lagartija", "lagarto", "culebra", "rana", "sapo", "sapo_corredor"]],
