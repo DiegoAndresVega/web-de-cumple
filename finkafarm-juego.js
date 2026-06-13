@@ -30,8 +30,14 @@
   // localStorage queda como caché/fallback si Firebase no está disponible.
   const clienteId = `c_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   let refMapa = null;
+  let refAssets = null;
   try {
-    if (window.firebase && firebase.database) refMapa = firebase.database().ref("finkafarm/mapa");
+    if (window.firebase && firebase.database) {
+      refMapa = firebase.database().ref("finkafarm/mapa");
+      // assets personalizados compartidos: cada uno bajo su tipo, guardado como
+      // texto JSON (los frames llevan celdas null que Firebase corromperia en arrays)
+      refAssets = firebase.database().ref("finkafarm/assets");
+    }
   } catch (e) {}
 
   function mapaDefecto() {
@@ -761,8 +767,10 @@
     const fila = filasPorCategoria.get(def.categoria);
     if (!fila) return; // categoría desconocida (defensivo)
     const anterior = pincelesAssetPorTipo.get(def.tipo);
+    const eraActivo = anterior && anterior.classList.contains("activo");
     if (anterior) anterior.remove();
     const b = crearBoton(ETIQUETAS_OBJETO[def.tipo], () => seleccionarPincel("objeto", def.tipo, b));
+    if (eraActivo) b.classList.add("activo"); // conservar selección al re-registrar (p. ej. eco de la nube)
     fila.appendChild(b);
     pincelesAssetPorTipo.set(def.tipo, b);
   }
@@ -833,11 +841,13 @@
     assetsPersonalizados.set(def.tipo, def);
     persistirAssetsPersonalizados();
     redibujarListaAssets();
+    recalcularOcupacion();   // por si ya hay objetos de este tipo colocados en el mapa
+    publicarAssetNube(def);  // compartir al instante con los demás dispositivos
   }
-  function eliminarAssetPersonalizado(tipo) {
-    const def = assetsPersonalizados.get(tipo);
-    if (!def) return;
-    if (!confirm(`¿Eliminar el asset "${def.nombreComun}"? Los objetos ya colocados en el mapa con ese tipo dejarán de dibujarse.`)) return;
+  // limpia un asset de todas las tablas del juego SIN preguntar ni tocar la
+  // nube: lo usa tanto el borrado local como la llegada de un borrado remoto
+  function desregistrarAssetLocal(tipo) {
+    if (!assetsPersonalizados.has(tipo)) return;
     assetsPersonalizados.delete(tipo);
     delete SPRITES[tipo];
     delete ETIQUETAS_OBJETO[tipo];
@@ -851,6 +861,49 @@
     persistirAssetsPersonalizados();
     recalcularOcupacion();
     redibujarListaAssets();
+  }
+  function eliminarAssetPersonalizado(tipo) {
+    const def = assetsPersonalizados.get(tipo);
+    if (!def) return;
+    if (!confirm(`¿Eliminar el asset "${def.nombreComun}"? Se quitará también en los demás dispositivos, y los objetos ya colocados con ese tipo dejarán de dibujarse.`)) return;
+    desregistrarAssetLocal(tipo);
+    if (refAssets) refAssets.child(tipo).remove().catch(() => {}); // propagar el borrado
+  }
+
+  // ── sincronización de assets con Firebase ────────────────────────────────
+  // Cada asset vive en finkafarm/assets/<tipo> como texto JSON. Al guardar se
+  // sube; un listener trae en vivo los que crean/borran otros dispositivos.
+  function publicarAssetNube(def) {
+    if (!refAssets) return;
+    refAssets.child(def.tipo).set({ json: JSON.stringify(def), clienteId, ts: Date.now() }).catch(() => {});
+  }
+  function aplicarAssetRemoto(snap) {
+    const v = snap.val();
+    if (!v || !v.json) return;
+    let def;
+    try { def = JSON.parse(v.json); } catch (e) { return; }
+    if (!def || !def.tipo || !Array.isArray(def.frames)) return;
+    assetsPersonalizados.set(def.tipo, def);
+    registrarAssetPersonalizado(def); // idempotente: reemplaza sprite/pincel si ya existía
+    persistirAssetsPersonalizados();
+    redibujarListaAssets();
+    recalcularOcupacion();
+  }
+  function sincronizarAssetsNube() {
+    if (!refAssets) return;
+    // los listeners de child_* disparan también para los que ya están en la
+    // nube, así que con esto se descargan los assets de los demás dispositivos
+    refAssets.on("child_added", aplicarAssetRemoto);
+    refAssets.on("child_changed", aplicarAssetRemoto);
+    refAssets.on("child_removed", (s) => desregistrarAssetLocal(s.key));
+    // y subimos los que solo existen aquí (creados antes de la sync o sin
+    // conexión), sin pisar versiones más nuevas que ya hubiera en la nube
+    refAssets.once("value").then((snap) => {
+      const enNube = snap.val() || {};
+      for (const def of [...assetsPersonalizados.values()]) {
+        if (!enNube[def.tipo]) publicarAssetNube(def);
+      }
+    }).catch(() => {});
   }
 
   // construye la interfaz del lienzo de píxeles + formulario del nuevo asset
@@ -1420,8 +1473,33 @@
       pantalon: a.pantalon, bota: oscurecer(a.pantalon, 0.6),
     };
   }
+  // ── personajes secretos ────────────────────────────────────────────────
+  // Si al entrar escribes "diego**" / "isthar**" (con asteriscos al final),
+  // tu personaje usa el asset personalizado correspondiente como skin; bajo
+  // el muñeco se ve solo "diego" / "isthar" (sin asteriscos).
+  const PERSONAJES_SECRETOS = { diego: "diego_maximus", isthar: "isthar_maximus" };
+  function personajeSecreto(nombreEntrada) {
+    const base = nombreEntrada.replace(/\*+$/, "");
+    if (base === nombreEntrada) return null; // sin asteriscos → nombre normal
+    const tipo = PERSONAJES_SECRETOS[base.trim().toLowerCase()];
+    return tipo ? { tipo, nombre: base.trim() } : null;
+  }
+  // grupo de sprites (mismas vistas para todas las direcciones) a partir de un
+  // asset personalizado; null si ese asset aún no está disponible aquí
+  function spritesDeAsset(tipo) {
+    const spr = SPRITES[tipo];
+    if (!spr || !spr.frames || !spr.frames.length) return null;
+    const grupo = { frames: spr.frames, sombra: Math.max(4, Math.round(spr.frames[0].ancho * 0.38)) };
+    return { abajo: grupo, arriba: grupo, lado: grupo };
+  }
+  function spritesDeAspecto(asp) {
+    if (asp && asp.maximus) return spritesDeAsset(asp.maximus) ||
+      crearSpritesJugador(coloresDeAspecto(aspectoAleatorio()), "corto"); // respaldo si falta el asset
+    return crearSpritesJugador(coloresDeAspecto(asp), asp.peinado);
+  }
 
   let miAspecto = aspectoAleatorio();
+  let miMaximus = null; // tipo del asset si soy un personaje secreto
   let spritesYo = crearSpritesJugador(coloresDeAspecto(miAspecto), miAspecto.peinado);
   let miNombre = "";
   let miMensaje = null;
@@ -1502,18 +1580,26 @@
 
   function entrarOnline(nombre) {
     miNombre = nombre;
+    // personaje secreto: skin fija desde un asset (se aplica ya, también offline)
+    if (miMaximus) {
+      miAspecto = { maximus: miMaximus };
+      const g = spritesDeAsset(miMaximus);
+      if (g) spritesYo = g;
+    }
     if (!refOnline) return;
     refYo = refOnline.child(idJugador);
     presenciaActiva = true;
 
     refOnline.once("value").then((snap) => {
-      // aspecto único entre los conectados
-      const conectados = snap.val() || {};
-      const usados = new Set(Object.keys(conectados).filter((id) => id !== idJugador)
-        .map((id) => JSON.stringify(conectados[id].aspecto || {})));
-      let intentos = 0;
-      while (usados.has(JSON.stringify(miAspecto)) && intentos++ < 40) miAspecto = aspectoAleatorio();
-      spritesYo = crearSpritesJugador(coloresDeAspecto(miAspecto), miAspecto.peinado);
+      if (!miMaximus) {
+        // aspecto único entre los conectados (solo para personajes normales)
+        const conectados = snap.val() || {};
+        const usados = new Set(Object.keys(conectados).filter((id) => id !== idJugador)
+          .map((id) => JSON.stringify(conectados[id].aspecto || {})));
+        let intentos = 0;
+        while (usados.has(JSON.stringify(miAspecto)) && intentos++ < 40) miAspecto = aspectoAleatorio();
+        spritesYo = crearSpritesJugador(coloresDeAspecto(miAspecto), miAspecto.peinado);
+      }
       publicarPresencia();
     }).catch(() => publicarPresencia());
 
@@ -1589,8 +1675,7 @@
         const aspectoJson = JSON.stringify(p.aspecto || {});
         if (o.aspectoJson !== aspectoJson) {
           o.aspectoJson = aspectoJson;
-          const asp = p.aspecto || aspectoAleatorio();
-          o.sprites = crearSpritesJugador(coloresDeAspecto(asp), asp.peinado);
+          o.sprites = spritesDeAspecto(p.aspecto || aspectoAleatorio());
         }
         o.nombre = p.nombre || "?";
         o.x = p.x; o.y = p.y;
@@ -2066,8 +2151,12 @@
   const elInputNombre = document.getElementById("input-nombre");
   elInputNombre.value = localStorage.getItem("finkafarm-nombre") || "";
   function confirmarNombre() {
-    const n = elInputNombre.value.trim().slice(0, 16) || "PEÑA";
-    try { localStorage.setItem("finkafarm-nombre", n); } catch (e) {}
+    const bruto = elInputNombre.value.trim().slice(0, 16) || "PEÑA";
+    const secreto = personajeSecreto(bruto);   // "diego**"/"isthar**" → skin de asset
+    miMaximus = secreto ? secreto.tipo : null;
+    const n = secreto ? secreto.nombre : bruto; // nombre visible: sin asteriscos
+    // se guarda lo que escribió (con ** incluidos) para reentrar como el secreto
+    try { localStorage.setItem("finkafarm-nombre", bruto); } catch (e) {}
     elModal.style.display = "none";
     entrarOnline(n);
   }
@@ -2284,6 +2373,7 @@
   // los assets personalizados pueden añadir tipos sólidos o fauna nueva:
   // se cargan antes de calcular ocupación y arrancar la fauna
   cargarAssetsPersonalizados();
+  sincronizarAssetsNube(); // comparte/recibe assets personalizados por Firebase en vivo
   recalcularOcupacion();
   reconstruirMundo();
   resize();
