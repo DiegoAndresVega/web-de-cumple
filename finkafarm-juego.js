@@ -941,7 +941,13 @@
     filaHerr.className = "ac-fila";
     const gFrames = [];
     const btnF1 = botonAlternable("Fotograma 1", gFrames, () => { activeFrame = 0; redibujarLienzo(); });
-    const btnF2 = botonAlternable("Fotograma 2", gFrames, () => { activeFrame = 1; redibujarLienzo(); });
+    const btnF2 = botonAlternable("Fotograma 2", gFrames, () => {
+      activeFrame = 1;
+      // si el fotograma 2 está en blanco, parte de una copia del 1 para solo
+      // retocar pequeños detalles de la animación (no redibujar todo de nuevo)
+      if (gridVacioDel(frames[1]) && !gridVacioDel(frames[0])) frames[1] = clonarGrid(frames[0]);
+      redibujarLienzo();
+    });
     btnF1.classList.add("activo");
     const gHerr = [];
     const btnPincel = botonAlternable("Pincel", gHerr, () => { herramienta = "pincel"; });
@@ -1481,15 +1487,21 @@
   function personajeSecreto(nombreEntrada) {
     const base = nombreEntrada.replace(/\*+$/, "");
     if (base === nombreEntrada) return null; // sin asteriscos → nombre normal
-    const tipo = PERSONAJES_SECRETOS[base.trim().toLowerCase()];
-    return tipo ? { tipo, nombre: base.trim() } : null;
+    const clave = base.trim().toLowerCase();
+    const tipo = PERSONAJES_SECRETOS[clave];
+    if (!tipo) return null;
+    // nombre visible siempre capitalizado: "Isthar", "Diego"
+    const nombre = clave.charAt(0).toUpperCase() + clave.slice(1);
+    return { tipo, nombre };
   }
   // grupo de sprites (mismas vistas para todas las direcciones) a partir de un
   // asset personalizado; null si ese asset aún no está disponible aquí
   function spritesDeAsset(tipo) {
     const spr = SPRITES[tipo];
     if (!spr || !spr.frames || !spr.frames.length) return null;
-    const grupo = { frames: spr.frames, sombra: Math.max(4, Math.round(spr.frames[0].ancho * 0.38)) };
+    // espejoInvertido: el asset se dibujó mirando al revés de lo que asume el
+    // motor (que voltea al ir a la izquierda), así que invertimos el volteo
+    const grupo = { frames: spr.frames, sombra: Math.max(4, Math.round(spr.frames[0].ancho * 0.38)), espejoInvertido: true };
     return { abajo: grupo, arriba: grupo, lado: grupo };
   }
   function spritesDeAspecto(asp) {
@@ -2277,8 +2289,9 @@
         const [x, y] = celdaAPantalla(jugador.x - 0.5, jugador.y - 0.5);
         const grupo = spritesYo[jugador.dir];
         const frIdx = jugador.moviendo ? Math.floor(jugador.animT * 8) % 2 : 0;
+        const esp = grupo.espejoInvertido ? !jugador.espejo : jugador.espejo;
         dibujarSombra(ctx, x + tam / 2, y + tam - camara.zoom, grupo.sombra, camara.zoom);
-        dibujarSprite(ctx, grupo.frames[frIdx], x, y, tam, tam, camara.zoom, jugador.espejo);
+        dibujarSprite(ctx, grupo.frames[frIdx], x, y, tam, tam, camara.zoom, esp);
       },
     });
     // jugadores online
@@ -2291,8 +2304,9 @@
           const [x, y] = celdaAPantalla(rem.rx - 0.5, rem.ry - 0.5);
           const grupo = (rem.sprites || spritesYo)[rem.dir] || (rem.sprites || spritesYo).abajo;
           const frIdx = rem.moviendo ? Math.floor(tiempo * 8) % 2 : 0;
+          const esp = grupo.espejoInvertido ? !rem.espejo : rem.espejo;
           dibujarSombra(ctx, x + tam / 2, y + tam - camara.zoom, grupo.sombra, camara.zoom);
-          dibujarSprite(ctx, grupo.frames[frIdx], x, y, tam, tam, camara.zoom, rem.espejo);
+          dibujarSprite(ctx, grupo.frames[frIdx], x, y, tam, tam, camara.zoom, esp);
         },
       });
     }
