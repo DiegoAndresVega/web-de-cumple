@@ -888,6 +888,7 @@
     persistirAssetsPersonalizados();
     redibujarListaAssets();
     recalcularOcupacion();
+    refrescarSpritesMaximus(def.tipo); // si es un skin de personaje, actualizar a quien lo use
   }
   function sincronizarAssetsNube() {
     if (!refAssets) return;
@@ -1509,6 +1510,15 @@
       crearSpritesJugador(coloresDeAspecto(aspectoAleatorio()), "corto"); // respaldo si falta el asset
     return crearSpritesJugador(coloresDeAspecto(asp), asp.peinado);
   }
+  // cuando el asset de un personaje secreto llega/actualiza por la nube,
+  // reconstruir el sprite de quien lo use (yo y los jugadores remotos) que
+  // hasta entonces cayó en el de respaldo aleatorio por no tener el asset aún
+  function refrescarSpritesMaximus(tipo) {
+    if (miMaximus === tipo) { const g = spritesDeAsset(tipo); if (g) spritesYo = g; }
+    for (const o of otros.values()) {
+      if (o.maximus === tipo) o.sprites = spritesDeAspecto({ maximus: tipo });
+    }
+  }
 
   let miAspecto = aspectoAleatorio();
   let miMaximus = null; // tipo del asset si soy un personaje secreto
@@ -1687,6 +1697,7 @@
         const aspectoJson = JSON.stringify(p.aspecto || {});
         if (o.aspectoJson !== aspectoJson) {
           o.aspectoJson = aspectoJson;
+          o.maximus = (p.aspecto && p.aspecto.maximus) || null; // para refrescar si el asset llega después
           o.sprites = spritesDeAspecto(p.aspecto || aspectoAleatorio());
         }
         o.nombre = p.nombre || "?";
