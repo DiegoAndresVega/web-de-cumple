@@ -10,7 +10,7 @@
 (function () {
   const G = window.Granja;
   const { COLS, FILAS, CUADRICULA, TERRENO_DEFECTO, OBJETOS_DEFECTO, JUGADOR_DEFECTO,
-    tamanoObjeto, OBJETOS_SOLIDOS, CATEGORIAS_OBJETO, TIPOS_OBJETO, SPRITES, PALETA, dibujarSprite, dibujarSombra, hash2,
+    tamanoObjeto, TAMANOS_OBJETO, OBJETOS_SOLIDOS, CATEGORIAS_OBJETO, TIPOS_OBJETO, SPRITES, PALETA, dibujarSprite, dibujarSombra, hash2,
     crearSpritesJugador, PEINADOS, gridACanvas } = G;
 
   const STORAGE_KEY = "granja-mapa-v1";
@@ -650,6 +650,7 @@
   const pincelesAssetPorTipo = new Map(); // tipo de asset personalizado → su botón de pincel
   const assetsPersonalizados = new Map(); // tipo → definición del asset personalizado
   let elListaAssets = null; // contenedor de la lista de assets personalizados (lo crea construirCreadorAsset)
+  let cargarAssetEnEditor = null; // (def) => carga ese asset en el pintor; lo asigna construirCreadorAsset
   function crearCategoria(titulo, construir) {
     const fila = document.createElement("div");
     fila.className = "fila pinceles";
@@ -683,8 +684,8 @@
   }
   // ── creador de assets: pintar a píxel un bicho/planta/objeto nuevo y
   // registrarlo como un pincel más (persistido en localStorage) ──────────
-  const AC_ESCALA = 16; // px por celda en el lienzo principal
-  const AC_ESCALA_PREVIEW = 8; // px por celda en la vista previa
+  const AC_MAX = 64; // lado máximo del lienzo en celdas (un asset de 64 = 4x4 celdas del mapa)
+  const AC_LIENZO_PX = 360, AC_PREVIEW_PX = 120; // tamaño objetivo en pantalla; la escala por celda se ajusta sola
   const AC_PALETA = [ // subconjunto curado de PALETA, suficiente para bichos y plantas
     "negro", "negro_l", "gris", "blanco", "crema",
     "piel", "piel_d", "pardo", "pardo_d", "pardo_l",
@@ -701,6 +702,16 @@
   }
   function clonarGrid(grid) {
     return grid.map((fila) => fila.slice());
+  }
+  // reescala un grid a otro tamaño por vecino más cercano (cada píxel se
+  // estira/encoge): así un dibujo de 16x16 se puede llevar a 64x64 sin rehacerlo
+  function escalarGrid(grid, nuevoAncho, nuevoAlto) {
+    const alto = grid.length, ancho = grid[0].length;
+    return Array.from({ length: nuevoAlto }, (_, ny) =>
+      Array.from({ length: nuevoAncho }, (_, nx) =>
+        grid[Math.min(alto - 1, Math.floor(ny * alto / nuevoAlto))][Math.min(ancho - 1, Math.floor(nx * ancho / nuevoAncho))]
+      )
+    );
   }
   function gridVacioDel(grid) {
     return grid.every((fila) => fila.every((c) => c === null));
@@ -770,6 +781,12 @@
     else delete ESPECIES_FAUNA[def.tipo];
     if (def.categoria === "ESCENARIO" || def.categoria === "ÁRBOLES") OBJETOS_SOLIDOS.add(def.tipo);
     else OBJETOS_SOLIDOS.delete(def.tipo);
+    // huella en celdas: un asset grande (p. ej. 64px = 4 celdas) ocupa y
+    // bloquea varias celdas como los edificios de fábrica. La fauna se mueve,
+    // así que se queda en 1x1 (su tamaño solo afecta al dibujo, no a la huella).
+    const celdasW = Math.max(1, Math.round(ancho / PX)), celdasH = Math.max(1, Math.round(alto / PX));
+    if (!def.fauna && (celdasW > 1 || celdasH > 1)) TAMANOS_OBJETO[def.tipo] = [celdasW, celdasH];
+    else delete TAMANOS_OBJETO[def.tipo];
     agregarPincelAsset(def);
   }
 
@@ -796,13 +813,18 @@
       const item = document.createElement("div");
       item.className = "ac-lista-item";
       const ficha = FICHAS[def.tipo] || [def.nombreComun, "", "❓"];
+      const ancho = def.frames[0][0].length, alto = def.frames[0].length;
       const info = document.createElement("span");
-      info.textContent = `${ficha[2]} ${ficha[0]} — ${def.categoria}`;
+      info.textContent = `${ficha[2]} ${ficha[0]} — ${def.categoria} · ${ancho}×${alto}`;
+      const btnEditar = document.createElement("button");
+      btnEditar.type = "button";
+      btnEditar.textContent = "✎ editar";
+      btnEditar.addEventListener("click", () => { if (cargarAssetEnEditor) cargarAssetEnEditor(def); });
       const btnBorrar = document.createElement("button");
       btnBorrar.type = "button";
       btnBorrar.textContent = "🗑 eliminar";
       btnBorrar.addEventListener("click", () => eliminarAssetPersonalizado(def.tipo));
-      item.append(info, btnBorrar);
+      item.append(info, btnEditar, btnBorrar);
       elListaAssets.appendChild(item);
     }
   }
@@ -821,6 +843,7 @@
     delete ETIQUETAS_OBJETO[tipo];
     delete FICHAS[tipo];
     delete ESPECIES_FAUNA[tipo];
+    delete TAMANOS_OBJETO[tipo];
     OBJETOS_SOLIDOS.delete(tipo);
     const btn = pincelesAssetPorTipo.get(tipo);
     if (btn) { btn.remove(); pincelesAssetPorTipo.delete(tipo); }
@@ -842,18 +865,22 @@
     let colorActual = AC_PALETA[0];
     let herramienta = "pincel"; // "pincel" | "borrar"
     let pintando = false;
+    let escalaLienzo = 16, escalaPreview = 8; // px por celda en pantalla; los ajusta aplicarTamanoLienzo
 
     // -- tamaño de lienzo --
     const elAncho = document.createElement("input");
-    elAncho.type = "number"; elAncho.min = "4"; elAncho.max = "24"; elAncho.value = "16";
+    elAncho.type = "number"; elAncho.min = "4"; elAncho.max = String(AC_MAX); elAncho.value = "16";
     const elAlto = document.createElement("input");
-    elAlto.type = "number"; elAlto.min = "4"; elAlto.max = "24"; elAlto.value = "16";
+    elAlto.type = "number"; elAlto.min = "4"; elAlto.max = String(AC_MAX); elAlto.value = "16";
     const btnNuevo = document.createElement("button");
     btnNuevo.type = "button"; btnNuevo.textContent = "Lienzo nuevo";
+    const btnRedim = document.createElement("button");
+    btnRedim.type = "button"; btnRedim.textContent = "↔ Redimensionar";
+    btnRedim.title = "Cambia el tamaño escalando el dibujo actual (para agrandar lo ya pintado)";
 
     const filaTamano = document.createElement("div");
     filaTamano.className = "ac-fila";
-    filaTamano.append(campo("Ancho", elAncho), campo("Alto", elAlto), btnNuevo);
+    filaTamano.append(campo("Ancho", elAncho), campo("Alto", elAlto), btnNuevo, btnRedim);
     cont.appendChild(filaTamano);
 
     // -- fotogramas y herramientas --
@@ -924,10 +951,15 @@
 
     function aplicarTamanoLienzo() {
       const ancho = frames[0][0].length, alto = frames[0].length;
-      lienzo.width = ancho * AC_ESCALA;
-      lienzo.height = alto * AC_ESCALA;
-      preview.width = ancho * AC_ESCALA_PREVIEW;
-      preview.height = alto * AC_ESCALA_PREVIEW;
+      const lado = Math.max(ancho, alto);
+      // la escala por celda se adapta al tamaño: lienzos grandes (64) usan
+      // celdas pequeñas para no desbordar el panel; pequeños (16) celdas grandes
+      escalaLienzo = Math.max(4, Math.min(20, Math.floor(AC_LIENZO_PX / lado)));
+      escalaPreview = Math.max(2, Math.min(10, Math.floor(AC_PREVIEW_PX / lado)));
+      lienzo.width = ancho * escalaLienzo;
+      lienzo.height = alto * escalaLienzo;
+      preview.width = ancho * escalaPreview;
+      preview.height = alto * escalaPreview;
     }
     function redibujarLienzo() {
       const grid = frames[activeFrame];
@@ -937,16 +969,18 @@
         for (let x = 0; x < grid[0].length; x++) {
           const clave = grid[y][x];
           c.fillStyle = clave ? (PALETA[clave] || clave) : "#3a2a1c";
-          c.fillRect(x * AC_ESCALA, y * AC_ESCALA, AC_ESCALA, AC_ESCALA);
+          c.fillRect(x * escalaLienzo, y * escalaLienzo, escalaLienzo, escalaLienzo);
         }
       }
-      c.strokeStyle = "rgba(255,255,255,0.08)";
-      c.lineWidth = 1;
-      for (let x = 0; x <= grid[0].length; x++) {
-        c.beginPath(); c.moveTo(x * AC_ESCALA + 0.5, 0); c.lineTo(x * AC_ESCALA + 0.5, lienzo.height); c.stroke();
-      }
-      for (let y = 0; y <= grid.length; y++) {
-        c.beginPath(); c.moveTo(0, y * AC_ESCALA + 0.5); c.lineTo(lienzo.width, y * AC_ESCALA + 0.5); c.stroke();
+      if (escalaLienzo >= 7) { // rejilla solo si las celdas son visibles (no en lienzos grandes)
+        c.strokeStyle = "rgba(255,255,255,0.08)";
+        c.lineWidth = 1;
+        for (let x = 0; x <= grid[0].length; x++) {
+          c.beginPath(); c.moveTo(x * escalaLienzo + 0.5, 0); c.lineTo(x * escalaLienzo + 0.5, lienzo.height); c.stroke();
+        }
+        for (let y = 0; y <= grid.length; y++) {
+          c.beginPath(); c.moveTo(0, y * escalaLienzo + 0.5); c.lineTo(lienzo.width, y * escalaLienzo + 0.5); c.stroke();
+        }
       }
       if (!previewAnimando) redibujarPreview(); // la vista estática sigue al fotograma que editas
     }
@@ -964,7 +998,7 @@
           const clave = grid[y][x];
           if (!clave) continue;
           c.fillStyle = PALETA[clave] || clave;
-          c.fillRect(x * AC_ESCALA_PREVIEW, y * AC_ESCALA_PREVIEW, AC_ESCALA_PREVIEW, AC_ESCALA_PREVIEW);
+          c.fillRect(x * escalaPreview, y * escalaPreview, escalaPreview, escalaPreview);
         }
       }
     }
@@ -983,8 +1017,8 @@
 
     function pintarEn(e) {
       const r = lienzo.getBoundingClientRect();
-      const x = Math.floor((e.clientX - r.left) * (lienzo.width / r.width) / AC_ESCALA);
-      const y = Math.floor((e.clientY - r.top) * (lienzo.height / r.height) / AC_ESCALA);
+      const x = Math.floor((e.clientX - r.left) * (lienzo.width / r.width) / escalaLienzo);
+      const y = Math.floor((e.clientY - r.top) * (lienzo.height / r.height) / escalaLienzo);
       const grid = frames[activeFrame];
       if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
       grid[y][x] = herramienta === "borrar" ? null : colorActual;
@@ -997,11 +1031,26 @@
     window.addEventListener("pointerup", () => { pintando = false; });
     lienzo.addEventListener("pointercancel", () => { pintando = false; });
 
+    function tamanoPedido() {
+      return [
+        Math.max(4, Math.min(AC_MAX, Math.round(numero(elAncho, 16)))),
+        Math.max(4, Math.min(AC_MAX, Math.round(numero(elAlto, 16)))),
+      ];
+    }
     btnNuevo.addEventListener("click", () => {
-      const ancho = Math.max(4, Math.min(24, Math.round(numero(elAncho, 16))));
-      const alto = Math.max(4, Math.min(24, Math.round(numero(elAlto, 16))));
+      const [ancho, alto] = tamanoPedido();
       elAncho.value = ancho; elAlto.value = alto;
       frames = [gridVacio(ancho, alto), gridVacio(ancho, alto)];
+      activeFrame = 0;
+      for (const x of gFrames) x.classList.remove("activo"); btnF1.classList.add("activo");
+      aplicarTamanoLienzo();
+      redibujarLienzo();
+      redibujarPreview();
+    });
+    btnRedim.addEventListener("click", () => {
+      const [ancho, alto] = tamanoPedido();
+      elAncho.value = ancho; elAlto.value = alto;
+      frames = [escalarGrid(frames[0], ancho, alto), escalarGrid(frames[1], ancho, alto)];
       aplicarTamanoLienzo();
       redibujarLienzo();
       redibujarPreview();
@@ -1109,6 +1158,43 @@
     elCategoria.addEventListener("change", actualizarVisibilidadFauna);
     actualizarVisibilidadFauna();
     cont.appendChild(elFauna);
+
+    // carga un asset guardado de vuelta en el pintor para seguir editándolo
+    // (recupera lienzo, fotogramas y todos los campos del formulario)
+    cargarAssetEnEditor = function (def) {
+      const val = (x, d) => (x === undefined || x === null ? d : x);
+      frames = [clonarGrid(def.frames[0]), clonarGrid(def.frames[1] || def.frames[0])];
+      elAncho.value = def.frames[0][0].length;
+      elAlto.value = def.frames[0].length;
+      activeFrame = 0;
+      for (const x of gFrames) x.classList.remove("activo");
+      btnF1.classList.add("activo");
+      aplicarTamanoLienzo();
+      redibujarLienzo();
+      redibujarPreview();
+      elCategoria.value = def.categoria;
+      elTipo.value = def.tipo; tipoManual = true;
+      elEmoji.value = def.emoji || "";
+      elNombre.value = def.nombreComun || "";
+      elCientifico.value = def.nombreCientifico || "";
+      const fn = def.fauna;
+      if (fn) {
+        elModo.value = fn.modo || "terrestre";
+        elVel.value = val(fn.vel, 2);
+        elRadio.value = val(fn.radio, 6);
+        elProb.value = val(fn.prob, 0.2);
+        elMax.value = val(fn.max, 2);
+        elVidaMin.value = val(fn.vida && fn.vida[0], 30);
+        elVidaMax.value = val(fn.vida && fn.vida[1], 70);
+        elEsperaMin.value = val(fn.espera && fn.espera[0], 1);
+        elEsperaMax.value = val(fn.espera && fn.espera[1], 5);
+        elAgua.checked = !!fn.agua;
+        elAlturaMax.value = val(fn.alturaMax, 1.6);
+      }
+      campoAltura.style.display = (fn && fn.modo === "volador") ? "" : "none";
+      actualizarVisibilidadFauna();
+      lienzo.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
 
     // -- lectura del formulario: construye la definición completa del asset --
     function leerFormularioAsset() {
