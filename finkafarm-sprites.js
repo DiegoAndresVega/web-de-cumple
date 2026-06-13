@@ -953,9 +953,10 @@
   // (gridACanvas acepta colores que no estén en la PALETA). Los ojos llevan
   // blanco + pupila oscura para que se vean sobre cualquier color de piel.
   const BLANCO_OJO = "#ffffff", PUPILA = "#1a1a1a";
+  const CUERNO = "#e8dcc0", CUERNO_D = "#c9bb98"; // marfil para los cuernos
 
   // Peinados: cómo se pinta el pelo en cada dirección. "calvo" no pinta nada.
-  const PEINADOS = ["corto", "largo", "pinchos", "loco", "calvo"];
+  const PEINADOS = ["corto", "largo", "pinchos", "loco", "cresta", "punk", "coletas", "cuernos", "calvo"];
   function dibujarPelo(g, dir, peinado, pelo) {
     if (peinado === "calvo") return;
     if (dir === "abajo") {
@@ -969,6 +970,24 @@
       } else if (peinado === "loco") {
         rect(g, 3, 1, 11, 3, pelo);
         for (const [x, y] of [[1, 2], [14, 2], [3, 0], [8, 0], [12, 0], [0, 4], [15, 4], [6, 0], [10, 0], [15, 1]]) punto(g, x, y, pelo);
+      } else if (peinado === "cresta") {
+        // cresta tipo gallo: tira central alzada, laterales rapados (piel a la vista)
+        rect(g, 6, 1, 4, 3, pelo);
+        rect(g, 7, 0, 2, 4, pelo);
+      } else if (peinado === "punk") {
+        // crestón de púas gruesas que recorren toda la coronilla
+        rect(g, 5, 1, 7, 2, pelo);
+        for (const x of [5, 7, 9, 11]) rect(g, x, 0, 1, 2, pelo);
+      } else if (peinado === "coletas") {
+        rect(g, 3, 1, 11, 3, pelo);
+        punto(g, 3, 4, pelo); punto(g, 13, 4, pelo);
+        rect(g, 1, 4, 2, 6, pelo); rect(g, 13, 4, 2, 6, pelo); // dos coletas a los lados
+        punto(g, 1, 10, pelo); punto(g, 14, 10, pelo);         // puntas
+      } else if (peinado === "cuernos") {
+        rect(g, 4, 1, 9, 3, pelo); // pelo corto entre los cuernos
+        // cuernos de marfil curvándose hacia arriba desde las sienes
+        punto(g, 2, 2, CUERNO_D); punto(g, 2, 1, CUERNO); punto(g, 3, 0, CUERNO);
+        punto(g, 13, 2, CUERNO_D); punto(g, 13, 1, CUERNO); punto(g, 12, 0, CUERNO);
       } else { // corto
         rect(g, 3, 1, 11, 3, pelo);
         punto(g, 3, 4, pelo); punto(g, 13, 4, pelo);
@@ -984,6 +1003,19 @@
       } else if (peinado === "loco") {
         rect(g, 3, 1, 11, 7, pelo);
         for (const [x, y] of [[1, 3], [14, 2], [2, 0], [8, 0], [13, 0], [0, 5], [15, 5], [5, 0], [10, 0]]) punto(g, x, y, pelo);
+      } else if (peinado === "cresta") {
+        rect(g, 6, 0, 4, 9, pelo);   // franja central por el cogote, cráneo a los lados
+        rect(g, 7, 0, 2, 10, pelo);
+      } else if (peinado === "punk") {
+        rect(g, 4, 1, 9, 7, pelo);
+        for (const x of [4, 6, 8, 10, 12]) punto(g, x, 0, pelo);
+      } else if (peinado === "coletas") {
+        rect(g, 3, 0, 11, 6, pelo);                            // melenita corta arriba
+        rect(g, 2, 5, 2, 6, pelo); rect(g, 12, 5, 2, 6, pelo); // dos coletas colgando
+      } else if (peinado === "cuernos") {
+        rect(g, 3, 0, 11, 8, pelo); rect(g, 4, 7, 9, 1, pelo); // como corto
+        punto(g, 2, 1, CUERNO_D); punto(g, 2, 0, CUERNO); punto(g, 3, 0, CUERNO);
+        punto(g, 13, 1, CUERNO_D); punto(g, 13, 0, CUERNO); punto(g, 12, 0, CUERNO);
       } else {
         rect(g, 3, 0, 11, 8, pelo);
         rect(g, 4, 7, 9, 1, pelo);
@@ -999,6 +1031,18 @@
       } else if (peinado === "loco") {
         rect(g, 3, 1, 11, 4, pelo);
         for (const [x, y] of [[2, 2], [1, 5], [3, 0], [7, 0], [11, 0], [14, 1], [15, 3], [5, 0]]) punto(g, x, y, pelo);
+      } else if (peinado === "cresta") {
+        rect(g, 4, 1, 8, 1, pelo);   // raíz sobre el cráneo
+        rect(g, 4, 0, 7, 2, pelo);   // cresta alzada en perfil
+      } else if (peinado === "punk") {
+        rect(g, 3, 2, 9, 1, pelo);
+        for (const x of [3, 5, 7, 9, 11]) rect(g, x, 0, 1, 2, pelo);
+      } else if (peinado === "coletas") {
+        rect(g, 3, 1, 11, 4, pelo);
+        rect(g, 1, 4, 2, 6, pelo); punto(g, 1, 10, pelo); // coleta colgando por detrás
+      } else if (peinado === "cuernos") {
+        rect(g, 3, 1, 11, 4, pelo); punto(g, 3, 5, pelo);
+        punto(g, 4, 0, CUERNO); punto(g, 3, 0, CUERNO); punto(g, 3, 1, CUERNO_D); // cuerno en perfil
       } else {
         rect(g, 3, 1, 11, 4, pelo);
         punto(g, 3, 5, pelo);
