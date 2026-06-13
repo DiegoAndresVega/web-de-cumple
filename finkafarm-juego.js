@@ -10,8 +10,8 @@
 (function () {
   const G = window.Granja;
   const { COLS, FILAS, CUADRICULA, TERRENO_DEFECTO, OBJETOS_DEFECTO, JUGADOR_DEFECTO,
-    tamanoObjeto, OBJETOS_SOLIDOS, CATEGORIAS_OBJETO, SPRITES, PALETA, dibujarSprite, dibujarSombra, hash2,
-    crearSpritesJugador, PEINADOS } = G;
+    tamanoObjeto, OBJETOS_SOLIDOS, CATEGORIAS_OBJETO, TIPOS_OBJETO, SPRITES, PALETA, dibujarSprite, dibujarSombra, hash2,
+    crearSpritesJugador, PEINADOS, gridACanvas } = G;
 
   const STORAGE_KEY = "granja-mapa-v1";
   const PX = 16; // píxeles de arte por celda
@@ -613,8 +613,9 @@
     gallina: "GALLINA", oveja_negra: "OVEJA", liebre: "LIEBRE",
     zorro: "ZORRO", gineta: "GINETA", comadreja: "COMADREJA",
     gorrion: "GORRIÓN", urraca: "URRACA", abubilla: "ABUBILLA", ciguena: "CIGÜEÑA",
-    perdiz: "PERDIZ", lagartija: "LAGARTIJA", lagarto: "LAGARTO", culebra: "CULEBRA",
-    rana: "RANA", sapo: "SAPO", libelula: "LIBÉLULA", oruga: "ORUGA", mariquita: "MARIQUITA",
+    aguila: "ÁGUILA", perdiz: "PERDIZ", lagartija: "LAGARTIJA", lagarto: "LAGARTO", culebra: "CULEBRA",
+    rana: "RANA", sapo: "SAPO", sapo_corredor: "SAPO CORREDOR",
+    libelula: "LIBÉLULA", oruga: "ORUGA", mariquita: "MARIQUITA", sanjuanero: "SANJUANERO",
   };
 
   const botones = [];
@@ -645,10 +646,15 @@
   const elPestanas = document.getElementById("pestanas-editor");
   const elContenido = document.getElementById("contenido-categorias");
   const pestanas = []; // [botónPestaña, filaDePinceles]
+  const filasPorCategoria = new Map(); // título de categoría → fila de pinceles
+  const pincelesAssetPorTipo = new Map(); // tipo de asset personalizado → su botón de pincel
+  const assetsPersonalizados = new Map(); // tipo → definición del asset personalizado
+  let elListaAssets = null; // contenedor de la lista de assets personalizados (lo crea construirCreadorAsset)
   function crearCategoria(titulo, construir) {
     const fila = document.createElement("div");
     fila.className = "fila pinceles";
     fila.style.display = "none";
+    filasPorCategoria.set(titulo, fila);
     construir(fila);
     elContenido.appendChild(fila);
     const tab = document.createElement("button");
@@ -675,6 +681,514 @@
       }
     });
   }
+  // ── creador de assets: pintar a píxel un bicho/planta/objeto nuevo y
+  // registrarlo como un pincel más (persistido en localStorage) ──────────
+  const AC_ESCALA = 16; // px por celda en el lienzo principal
+  const AC_ESCALA_PREVIEW = 8; // px por celda en la vista previa
+  const AC_PALETA = [ // subconjunto curado de PALETA, suficiente para bichos y plantas
+    "negro", "negro_l", "gris", "blanco", "crema",
+    "piel", "piel_d", "pardo", "pardo_d", "pardo_l",
+    "rojo", "amarillo", "morado", "rosa",
+    "hierba", "hierba_d", "hierba_l", "bosque", "bosque_d",
+    "tronco", "tronco_d", "agua", "agua_d",
+    "oliva", "oliva_l", "flor_a", "flor_r", "flor_b", "flor_m",
+    "madera", "madera_d",
+  ];
+  const ASSETS_STORAGE_KEY = "granja-assets-v1";
+
+  function gridVacio(ancho, alto) {
+    return Array.from({ length: alto }, () => new Array(ancho).fill(null));
+  }
+  function clonarGrid(grid) {
+    return grid.map((fila) => fila.slice());
+  }
+  function gridVacioDel(grid) {
+    return grid.every((fila) => fila.every((c) => c === null));
+  }
+  function frameDesdeGrid(grid) {
+    return { ancho: grid[0].length, alto: grid.length, canvas: gridACanvas(grid) };
+  }
+  function slugify(texto) {
+    return (texto || "")
+      .toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+  function numero(el, porDefecto) {
+    const v = parseFloat(el.value);
+    return Number.isFinite(v) ? v : porDefecto;
+  }
+  function campo(etiqueta, input) {
+    const lbl = document.createElement("label");
+    lbl.className = "ac-campo";
+    if (input.type === "checkbox") lbl.classList.add("ac-campo-check");
+    const span = document.createElement("span");
+    span.textContent = etiqueta;
+    lbl.append(span, input);
+    return lbl;
+  }
+
+  // botón del editor que se marca "activo" en exclusiva dentro de su grupo
+  // (fotogramas, herramientas...), sin pasar por el sistema de pinceles
+  function botonAlternable(texto, grupo, onClick) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = texto;
+    b.addEventListener("click", () => {
+      for (const x of grupo) x.classList.remove("activo");
+      b.classList.add("activo");
+      onClick();
+    });
+    grupo.push(b);
+    return b;
+  }
+
+  // pincel del editor para un asset personalizado: vive en la fila de su
+  // categoría junto a los pinceles de fábrica
+  function agregarPincelAsset(def) {
+    const fila = filasPorCategoria.get(def.categoria);
+    if (!fila) return; // categoría desconocida (defensivo)
+    const anterior = pincelesAssetPorTipo.get(def.tipo);
+    if (anterior) anterior.remove();
+    const b = crearBoton(ETIQUETAS_OBJETO[def.tipo], () => seleccionarPincel("objeto", def.tipo, b));
+    fila.appendChild(b);
+    pincelesAssetPorTipo.set(def.tipo, b);
+  }
+
+  // registra (o actualiza) un asset personalizado en todas las tablas del
+  // juego: sprite, etiqueta, ficha, fauna y sólidos. No toca localStorage.
+  function registrarAssetPersonalizado(def) {
+    const ancho = def.frames[0][0].length, alto = def.frames[0].length;
+    SPRITES[def.tipo] = {
+      frames: [frameDesdeGrid(def.frames[0]), frameDesdeGrid(def.frames[1])],
+      sombra: def.fauna ? Math.max(1, Math.round(Math.min(ancho, alto) * 0.3)) : 0,
+    };
+    ETIQUETAS_OBJETO[def.tipo] = (def.nombreComun || def.tipo).toUpperCase();
+    FICHAS[def.tipo] = [def.nombreComun, def.nombreCientifico || "", def.emoji || "❓"];
+    if (def.fauna) ESPECIES_FAUNA[def.tipo] = { ...def.fauna };
+    else delete ESPECIES_FAUNA[def.tipo];
+    if (def.categoria === "ESCENARIO" || def.categoria === "ÁRBOLES") OBJETOS_SOLIDOS.add(def.tipo);
+    else OBJETOS_SOLIDOS.delete(def.tipo);
+    agregarPincelAsset(def);
+  }
+
+  function persistirAssetsPersonalizados() {
+    try { localStorage.setItem(ASSETS_STORAGE_KEY, JSON.stringify([...assetsPersonalizados.values()])); } catch (e) {}
+  }
+  function cargarAssetsPersonalizados() {
+    let lista = [];
+    try {
+      const raw = localStorage.getItem(ASSETS_STORAGE_KEY);
+      if (raw) lista = JSON.parse(raw);
+    } catch (e) {}
+    for (const def of lista) {
+      if (!def || !def.tipo || !Array.isArray(def.frames)) continue;
+      assetsPersonalizados.set(def.tipo, def);
+      registrarAssetPersonalizado(def);
+    }
+    redibujarListaAssets();
+  }
+  function redibujarListaAssets() {
+    if (!elListaAssets) return;
+    elListaAssets.innerHTML = "";
+    for (const def of assetsPersonalizados.values()) {
+      const item = document.createElement("div");
+      item.className = "ac-lista-item";
+      const ficha = FICHAS[def.tipo] || [def.nombreComun, "", "❓"];
+      const info = document.createElement("span");
+      info.textContent = `${ficha[2]} ${ficha[0]} — ${def.categoria}`;
+      const btnBorrar = document.createElement("button");
+      btnBorrar.type = "button";
+      btnBorrar.textContent = "🗑 eliminar";
+      btnBorrar.addEventListener("click", () => eliminarAssetPersonalizado(def.tipo));
+      item.append(info, btnBorrar);
+      elListaAssets.appendChild(item);
+    }
+  }
+  function guardarAssetDefinicion(def) {
+    registrarAssetPersonalizado(def);
+    assetsPersonalizados.set(def.tipo, def);
+    persistirAssetsPersonalizados();
+    redibujarListaAssets();
+  }
+  function eliminarAssetPersonalizado(tipo) {
+    const def = assetsPersonalizados.get(tipo);
+    if (!def) return;
+    if (!confirm(`¿Eliminar el asset "${def.nombreComun}"? Los objetos ya colocados en el mapa con ese tipo dejarán de dibujarse.`)) return;
+    assetsPersonalizados.delete(tipo);
+    delete SPRITES[tipo];
+    delete ETIQUETAS_OBJETO[tipo];
+    delete FICHAS[tipo];
+    delete ESPECIES_FAUNA[tipo];
+    OBJETOS_SOLIDOS.delete(tipo);
+    const btn = pincelesAssetPorTipo.get(tipo);
+    if (btn) { btn.remove(); pincelesAssetPorTipo.delete(tipo); }
+    if (pincel.tipo === "objeto" && pincel.valor === tipo) seleccionarPincel("mover", null, btnMover);
+    persistirAssetsPersonalizados();
+    recalcularOcupacion();
+    redibujarListaAssets();
+  }
+
+  // construye la interfaz del lienzo de píxeles + formulario del nuevo asset
+  function construirCreadorAsset(fila) {
+    const cont = document.createElement("div");
+    cont.className = "asset-creador";
+    fila.appendChild(cont);
+
+    // estado del lienzo: dos fotogramas para animar (caminar/aletear)
+    let frames = [gridVacio(16, 16), gridVacio(16, 16)];
+    let activeFrame = 0;
+    let colorActual = AC_PALETA[0];
+    let herramienta = "pincel"; // "pincel" | "borrar"
+    let pintando = false;
+
+    // -- tamaño de lienzo --
+    const elAncho = document.createElement("input");
+    elAncho.type = "number"; elAncho.min = "4"; elAncho.max = "24"; elAncho.value = "16";
+    const elAlto = document.createElement("input");
+    elAlto.type = "number"; elAlto.min = "4"; elAlto.max = "24"; elAlto.value = "16";
+    const btnNuevo = document.createElement("button");
+    btnNuevo.type = "button"; btnNuevo.textContent = "Lienzo nuevo";
+
+    const filaTamano = document.createElement("div");
+    filaTamano.className = "ac-fila";
+    filaTamano.append(campo("Ancho", elAncho), campo("Alto", elAlto), btnNuevo);
+    cont.appendChild(filaTamano);
+
+    // -- fotogramas y herramientas --
+    const filaHerr = document.createElement("div");
+    filaHerr.className = "ac-fila";
+    const gFrames = [];
+    const btnF1 = botonAlternable("Fotograma 1", gFrames, () => { activeFrame = 0; redibujarLienzo(); });
+    const btnF2 = botonAlternable("Fotograma 2", gFrames, () => { activeFrame = 1; redibujarLienzo(); });
+    btnF1.classList.add("activo");
+    const gHerr = [];
+    const btnPincel = botonAlternable("Pincel", gHerr, () => { herramienta = "pincel"; });
+    const btnBorrar = botonAlternable("Borrar", gHerr, () => { herramienta = "borrar"; });
+    btnPincel.classList.add("activo");
+    filaHerr.append(btnF1, btnF2, btnPincel, btnBorrar);
+    cont.appendChild(filaHerr);
+
+    // -- paleta de colores --
+    const filaPaleta = document.createElement("div");
+    filaPaleta.className = "ac-fila";
+    const elPaleta = document.createElement("div");
+    elPaleta.className = "ac-paleta";
+    const swatches = [];
+    for (const clave of AC_PALETA) {
+      const sw = document.createElement("div");
+      sw.className = "ac-color";
+      sw.style.background = PALETA[clave] || clave;
+      sw.title = clave;
+      sw.addEventListener("click", () => {
+        colorActual = clave;
+        herramienta = "pincel";
+        for (const x of gHerr) x.classList.remove("activo");
+        btnPincel.classList.add("activo");
+        for (const s of swatches) s.classList.remove("activo");
+        sw.classList.add("activo");
+      });
+      swatches.push(sw);
+      elPaleta.appendChild(sw);
+    }
+    swatches[0].classList.add("activo");
+    const elColorLibre = document.createElement("input");
+    elColorLibre.type = "color";
+    elColorLibre.value = "#8a5524";
+    elColorLibre.title = "Color personalizado";
+    elColorLibre.addEventListener("input", () => {
+      colorActual = elColorLibre.value;
+      herramienta = "pincel";
+      for (const x of gHerr) x.classList.remove("activo");
+      btnPincel.classList.add("activo");
+      for (const s of swatches) s.classList.remove("activo");
+    });
+    filaPaleta.append(elPaleta, elColorLibre);
+    cont.appendChild(filaPaleta);
+
+    // -- lienzo principal + vista previa --
+    const filaLienzo = document.createElement("div");
+    filaLienzo.className = "ac-fila";
+    const lienzo = document.createElement("canvas");
+    lienzo.className = "ac-lienzo";
+    const colPreview = document.createElement("div");
+    colPreview.className = "ac-campo";
+    const preview = document.createElement("canvas");
+    preview.className = "ac-preview";
+    const btnAnimar = document.createElement("button");
+    btnAnimar.type = "button"; btnAnimar.textContent = "▶ Animar";
+    colPreview.append(preview, btnAnimar);
+    filaLienzo.append(lienzo, colPreview);
+    cont.appendChild(filaLienzo);
+
+    function aplicarTamanoLienzo() {
+      const ancho = frames[0][0].length, alto = frames[0].length;
+      lienzo.width = ancho * AC_ESCALA;
+      lienzo.height = alto * AC_ESCALA;
+      preview.width = ancho * AC_ESCALA_PREVIEW;
+      preview.height = alto * AC_ESCALA_PREVIEW;
+    }
+    function redibujarLienzo() {
+      const grid = frames[activeFrame];
+      const c = lienzo.getContext("2d");
+      c.clearRect(0, 0, lienzo.width, lienzo.height);
+      for (let y = 0; y < grid.length; y++) {
+        for (let x = 0; x < grid[0].length; x++) {
+          const clave = grid[y][x];
+          c.fillStyle = clave ? (PALETA[clave] || clave) : "#3a2a1c";
+          c.fillRect(x * AC_ESCALA, y * AC_ESCALA, AC_ESCALA, AC_ESCALA);
+        }
+      }
+      c.strokeStyle = "rgba(255,255,255,0.08)";
+      c.lineWidth = 1;
+      for (let x = 0; x <= grid[0].length; x++) {
+        c.beginPath(); c.moveTo(x * AC_ESCALA + 0.5, 0); c.lineTo(x * AC_ESCALA + 0.5, lienzo.height); c.stroke();
+      }
+      for (let y = 0; y <= grid.length; y++) {
+        c.beginPath(); c.moveTo(0, y * AC_ESCALA + 0.5); c.lineTo(lienzo.width, y * AC_ESCALA + 0.5); c.stroke();
+      }
+      if (!previewAnimando) redibujarPreview(); // la vista estática sigue al fotograma que editas
+    }
+    // la vista previa no parpadea por defecto: muestra fija el fotograma en
+    // edición, y solo anima los dos al pulsar ▶ (botón de más abajo)
+    let previewAnimando = false;
+    let previewFrame = 0;
+    let previewTimer = null;
+    function redibujarPreview() {
+      const grid = frames[previewAnimando ? previewFrame : activeFrame];
+      const c = preview.getContext("2d");
+      c.clearRect(0, 0, preview.width, preview.height);
+      for (let y = 0; y < grid.length; y++) {
+        for (let x = 0; x < grid[0].length; x++) {
+          const clave = grid[y][x];
+          if (!clave) continue;
+          c.fillStyle = PALETA[clave] || clave;
+          c.fillRect(x * AC_ESCALA_PREVIEW, y * AC_ESCALA_PREVIEW, AC_ESCALA_PREVIEW, AC_ESCALA_PREVIEW);
+        }
+      }
+    }
+    btnAnimar.addEventListener("click", () => {
+      previewAnimando = !previewAnimando;
+      btnAnimar.textContent = previewAnimando ? "⏸ Parar" : "▶ Animar";
+      btnAnimar.classList.toggle("activo", previewAnimando);
+      if (previewAnimando) {
+        previewFrame = 0;
+        previewTimer = setInterval(() => { previewFrame = (previewFrame + 1) % 2; redibujarPreview(); }, 400);
+      } else {
+        clearInterval(previewTimer);
+        redibujarPreview(); // vuelve a mostrar el fotograma en edición
+      }
+    });
+
+    function pintarEn(e) {
+      const r = lienzo.getBoundingClientRect();
+      const x = Math.floor((e.clientX - r.left) * (lienzo.width / r.width) / AC_ESCALA);
+      const y = Math.floor((e.clientY - r.top) * (lienzo.height / r.height) / AC_ESCALA);
+      const grid = frames[activeFrame];
+      if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
+      grid[y][x] = herramienta === "borrar" ? null : colorActual;
+      redibujarLienzo();
+      redibujarPreview();
+    }
+    lienzo.style.touchAction = "none";
+    lienzo.addEventListener("pointerdown", (e) => { pintando = true; pintarEn(e); e.preventDefault(); });
+    lienzo.addEventListener("pointermove", (e) => { if (pintando) pintarEn(e); });
+    window.addEventListener("pointerup", () => { pintando = false; });
+    lienzo.addEventListener("pointercancel", () => { pintando = false; });
+
+    btnNuevo.addEventListener("click", () => {
+      const ancho = Math.max(4, Math.min(24, Math.round(numero(elAncho, 16))));
+      const alto = Math.max(4, Math.min(24, Math.round(numero(elAlto, 16))));
+      elAncho.value = ancho; elAlto.value = alto;
+      frames = [gridVacio(ancho, alto), gridVacio(ancho, alto)];
+      aplicarTamanoLienzo();
+      redibujarLienzo();
+      redibujarPreview();
+    });
+
+    aplicarTamanoLienzo();
+    redibujarLienzo();
+    redibujarPreview();
+
+    // -- datos del asset --
+    const h4Datos = document.createElement("h4");
+    h4Datos.textContent = "DATOS DEL ASSET";
+    cont.appendChild(h4Datos);
+
+    const elCategoria = document.createElement("select");
+    for (const [titulo] of CATEGORIAS_OBJETO) {
+      const opt = document.createElement("option");
+      opt.value = titulo; opt.textContent = titulo;
+      elCategoria.appendChild(opt);
+    }
+    elCategoria.value = "INSECTOS";
+
+    const elTipo = document.createElement("input");
+    elTipo.type = "text"; elTipo.placeholder = "identificador único";
+    const elEmoji = document.createElement("input");
+    elEmoji.type = "text"; elEmoji.maxLength = 4; elEmoji.style.width = "44px"; elEmoji.placeholder = "🦋";
+    const elNombre = document.createElement("input");
+    elNombre.type = "text"; elNombre.placeholder = "p. ej. Mariposa azul";
+    const elCientifico = document.createElement("input");
+    elCientifico.type = "text"; elCientifico.placeholder = "p. ej. Polyommatus icarus";
+
+    let tipoManual = false;
+    elNombre.addEventListener("input", () => { if (!tipoManual) elTipo.value = slugify(elNombre.value); });
+    elTipo.addEventListener("input", () => { tipoManual = true; });
+
+    const filaDatos1 = document.createElement("div");
+    filaDatos1.className = "ac-fila";
+    filaDatos1.append(campo("Categoría", elCategoria), campo("Tipo (id)", elTipo), campo("Emoji", elEmoji));
+    cont.appendChild(filaDatos1);
+
+    const filaDatos2 = document.createElement("div");
+    filaDatos2.className = "ac-fila";
+    filaDatos2.append(campo("Nombre común", elNombre), campo("Nombre científico", elCientifico));
+    cont.appendChild(filaDatos2);
+
+    // -- comportamiento (solo ANIMALES / INSECTOS) --
+    const elFauna = document.createElement("div");
+    elFauna.className = "asset-creador";
+    const h4Fauna = document.createElement("h4");
+    h4Fauna.textContent = "COMPORTAMIENTO (animal/insecto)";
+    elFauna.appendChild(h4Fauna);
+
+    const elModo = document.createElement("select");
+    for (const [v, t] of [["terrestre", "Terrestre"], ["volador", "Volador"]]) {
+      const opt = document.createElement("option");
+      opt.value = v; opt.textContent = t;
+      elModo.appendChild(opt);
+    }
+    const elVel = document.createElement("input");
+    elVel.type = "number"; elVel.step = "0.1"; elVel.min = "0"; elVel.value = "2";
+    const elRadio = document.createElement("input");
+    elRadio.type = "number"; elRadio.step = "0.5"; elRadio.min = "0"; elRadio.value = "6";
+    const elProb = document.createElement("input");
+    elProb.type = "number"; elProb.step = "0.01"; elProb.min = "0"; elProb.max = "1"; elProb.value = "0.2";
+    const elMax = document.createElement("input");
+    elMax.type = "number"; elMax.step = "1"; elMax.min = "0"; elMax.value = "2";
+    const elVidaMin = document.createElement("input");
+    elVidaMin.type = "number"; elVidaMin.step = "1"; elVidaMin.min = "0"; elVidaMin.value = "30";
+    const elVidaMax = document.createElement("input");
+    elVidaMax.type = "number"; elVidaMax.step = "1"; elVidaMax.min = "0"; elVidaMax.value = "70";
+    const elEsperaMin = document.createElement("input");
+    elEsperaMin.type = "number"; elEsperaMin.step = "0.5"; elEsperaMin.min = "0"; elEsperaMin.value = "1";
+    const elEsperaMax = document.createElement("input");
+    elEsperaMax.type = "number"; elEsperaMax.step = "0.5"; elEsperaMax.min = "0"; elEsperaMax.value = "5";
+    const elAgua = document.createElement("input");
+    elAgua.type = "checkbox";
+    const elAlturaMax = document.createElement("input");
+    elAlturaMax.type = "number"; elAlturaMax.step = "0.1"; elAlturaMax.min = "0"; elAlturaMax.value = "1.6";
+
+    const filaFauna1 = document.createElement("div");
+    filaFauna1.className = "ac-fila";
+    filaFauna1.append(campo("Modo", elModo), campo("Velocidad", elVel), campo("Radio de paseo", elRadio));
+    const filaFauna2 = document.createElement("div");
+    filaFauna2.className = "ac-fila";
+    filaFauna2.append(campo("Rareza (0-1)", elProb), campo("Máximo a la vez", elMax), campo("Junto al agua", elAgua));
+    const filaFauna3 = document.createElement("div");
+    filaFauna3.className = "ac-fila";
+    filaFauna3.append(campo("Vida mín (s)", elVidaMin), campo("Vida máx (s)", elVidaMax),
+      campo("Espera mín (s)", elEsperaMin), campo("Espera máx (s)", elEsperaMax));
+    const filaFauna4 = document.createElement("div");
+    filaFauna4.className = "ac-fila";
+    const campoAltura = campo("Altura máx. vuelo", elAlturaMax);
+    filaFauna4.append(campoAltura);
+    elFauna.append(filaFauna1, filaFauna2, filaFauna3, filaFauna4);
+
+    elModo.addEventListener("change", () => {
+      campoAltura.style.display = elModo.value === "volador" ? "" : "none";
+    });
+    campoAltura.style.display = "none";
+
+    function actualizarVisibilidadFauna() {
+      const esFauna = elCategoria.value === "ANIMALES" || elCategoria.value === "INSECTOS";
+      elFauna.style.display = esFauna ? "flex" : "none";
+    }
+    elCategoria.addEventListener("change", actualizarVisibilidadFauna);
+    actualizarVisibilidadFauna();
+    cont.appendChild(elFauna);
+
+    // -- lectura del formulario: construye la definición completa del asset --
+    function leerFormularioAsset() {
+      const nombreComun = elNombre.value.trim();
+      const tipo = slugify(elTipo.value.trim() || nombreComun);
+      if (!nombreComun || !tipo) { alert("Ponle un nombre al asset."); return null; }
+      if (gridVacioDel(frames[0])) { alert("Dibuja algo en el lienzo (fotograma 1) antes de continuar."); return null; }
+      elTipo.value = tipo;
+      let f1 = clonarGrid(frames[1]);
+      if (gridVacioDel(f1)) f1 = clonarGrid(frames[0]); // sin 2º fotograma: estático, sin parpadeo
+
+      const categoria = elCategoria.value;
+      const esFauna = categoria === "ANIMALES" || categoria === "INSECTOS";
+      let fauna = null;
+      if (esFauna) {
+        fauna = {
+          modo: elModo.value,
+          vel: numero(elVel, 2),
+          radio: numero(elRadio, 5),
+          prob: Math.min(1, Math.max(0, numero(elProb, 0.2))),
+          max: Math.max(0, Math.round(numero(elMax, 2))),
+          vida: [numero(elVidaMin, 30), numero(elVidaMax, 70)],
+          espera: [numero(elEsperaMin, 1), numero(elEsperaMax, 5)],
+          agua: elAgua.checked,
+        };
+        if (fauna.modo === "volador") fauna.alturaMax = numero(elAlturaMax, 1.6);
+      }
+      return {
+        tipo, categoria, nombreComun,
+        nombreCientifico: elCientifico.value.trim(),
+        emoji: elEmoji.value.trim() || "❓",
+        frames: [clonarGrid(frames[0]), f1],
+        fauna,
+      };
+    }
+
+    // -- botones de acción --
+    const filaBotones = document.createElement("div");
+    filaBotones.className = "ac-fila";
+    const btnCrear = document.createElement("button");
+    btnCrear.type = "button"; btnCrear.textContent = "✔ Crear / actualizar asset";
+    const btnExportar = document.createElement("button");
+    btnExportar.type = "button"; btnExportar.textContent = "⇩ Exportar JSON";
+    filaBotones.append(btnCrear, btnExportar);
+    cont.appendChild(filaBotones);
+
+    const elJsonAsset = document.createElement("textarea");
+    elJsonAsset.placeholder = "JSON del asset (botón Exportar)";
+    elJsonAsset.rows = 4;
+    cont.appendChild(elJsonAsset);
+
+    btnCrear.addEventListener("click", () => {
+      const def = leerFormularioAsset();
+      if (!def) return;
+      const esPersonalizado = assetsPersonalizados.has(def.tipo);
+      if (!esPersonalizado && TIPOS_OBJETO.includes(def.tipo)) {
+        alert(`Ya existe un objeto del juego con el identificador "${def.tipo}". Cambia el nombre o el "Tipo (id)".`);
+        return;
+      }
+      guardarAssetDefinicion(def);
+      const b = pincelesAssetPorTipo.get(def.tipo);
+      if (b) seleccionarPincel("objeto", def.tipo, b);
+      alert(`Asset "${def.nombreComun}" ${esPersonalizado ? "actualizado" : "creado"}. Ya puedes colocarlo en el mapa: el pincel está seleccionado.`);
+    });
+    btnExportar.addEventListener("click", () => {
+      const def = leerFormularioAsset();
+      if (!def) return;
+      elJsonAsset.value = JSON.stringify(def, null, 1);
+      elJsonAsset.select();
+    });
+
+    // -- lista de assets personalizados ya guardados --
+    const h4Lista = document.createElement("h4");
+    h4Lista.textContent = "ASSETS PERSONALIZADOS";
+    cont.appendChild(h4Lista);
+    elListaAssets = document.createElement("div");
+    elListaAssets.className = "ac-lista";
+    cont.appendChild(elListaAssets);
+  }
+  crearCategoria("✚ NUEVO ASSET", construirCreadorAsset);
 
   document.getElementById("btn-exportar").addEventListener("click", () => {
     elJson.value = JSON.stringify(mapa, null, 1);
@@ -1069,9 +1583,12 @@
     culebra: ["Culebra de escalera", "Zamenis scalaris", "🐍"],
     rana: ["Rana común", "Pelophylax perezi", "🐸"],
     sapo: ["Sapo común", "Bufo spinosus", "🐸"],
+    sapo_corredor: ["Sapo corredor", "Epidalea calamita", "🐸"],
+    aguila: ["Águila calzada", "Hieraaetus pennatus", "🦅"],
     libelula: ["Libélula emperador", "Anax imperator", "🪰"],
     oruga: ["Oruga de la col", "Pieris brassicae (larva)", "🐛"],
     mariquita: ["Mariquita de siete puntos", "Coccinella septempunctata", "🐞"],
+    sanjuanero: ["Escarabajo sanjuanero", "Melolontha melolontha", "🪲"],
     liebre: ["Liebre ibérica", "Lepus granatensis", "🐇"],
     zorro: ["Zorro rojo", "Vulpes vulpes", "🦊"],
     gineta: ["Gineta", "Genetta genetta", "🐾"],
@@ -1116,30 +1633,33 @@
   // paseos a puntos aleatorios alrededor de ella, siempre DENTRO de la
   // finca (nunca al arbolado exterior). Hay bichos anclados a un objeto del
   // mapa colocado con el editor (rondan ese punto y no se van), y bichos
-  // libres ESPORÁDICOS: cada ~10 s se tira el dado por especie (prob =
+  // libres ESPORÁDICOS: cada ~5 s se tira el dado por especie (prob =
   // rareza, max = tope simultáneo) y los que salen viven `vida` segundos y
   // luego se marchan (las aves alzan el vuelo, el resto se escabulle).
   // radio = radio de paseo; agua = vive junto al agua; alturaMax = vuelo.
   const ESPECIES_FAUNA = {
-    gorrion: { max: 3, prob: 0.50, vida: [40, 90], modo: "volador", vel: 7, espera: [2, 7], radio: 60 },
-    urraca: { max: 2, prob: 0.30, vida: [30, 80], modo: "volador", vel: 8, espera: [3, 9], radio: 60 },
-    abubilla: { max: 1, prob: 0.12, vida: [25, 60], modo: "volador", vel: 6.5, espera: [4, 10], radio: 60 },
-    ciguena: { max: 1, prob: 0.10, vida: [30, 70], modo: "volador", vel: 5.5, espera: [6, 14], radio: 60 },
-    perdiz: { max: 2, prob: 0.20, vida: [30, 80], modo: "terrestre", vel: 2.4, espera: [2, 6], radio: 6 },
-    lagartija: { max: 2, prob: 0.40, vida: [30, 90], modo: "terrestre", vel: 3.6, espera: [1, 4], radio: 5 },
-    lagarto: { max: 1, prob: 0.12, vida: [25, 60], modo: "terrestre", vel: 2.0, espera: [3, 8], radio: 5 },
-    culebra: { max: 1, prob: 0.08, vida: [25, 60], modo: "terrestre", vel: 1.3, espera: [4, 9], radio: 6 },
-    liebre: { max: 1, prob: 0.10, vida: [20, 50], modo: "terrestre", vel: 6, espera: [2, 7], radio: 9 },
+    gorrion: { max: 5, prob: 0.50, vida: [40, 90], modo: "volador", vel: 7, espera: [2, 7], radio: 60 },
+    urraca: { max: 3, prob: 0.30, vida: [30, 80], modo: "volador", vel: 8, espera: [3, 9], radio: 60 },
+    abubilla: { max: 2, prob: 0.20, vida: [25, 60], modo: "volador", vel: 6.5, espera: [4, 10], radio: 60 },
+    ciguena: { max: 2, prob: 0.20, vida: [30, 70], modo: "volador", vel: 5.5, espera: [6, 14], radio: 60 },
+    perdiz: { max: 3, prob: 0.20, vida: [30, 80], modo: "terrestre", vel: 2.4, espera: [2, 6], radio: 6 },
+    lagartija: { max: 4, prob: 0.40, vida: [30, 90], modo: "terrestre", vel: 3.6, espera: [1, 4], radio: 5 },
+    lagarto: { max: 2, prob: 0.20, vida: [25, 60], modo: "terrestre", vel: 2.0, espera: [3, 8], radio: 5 },
+    culebra: { max: 3, prob: 0.20, vida: [25, 60], modo: "terrestre", vel: 1.3, espera: [4, 9], radio: 6 },
+    liebre: { max: 2, prob: 0.20, vida: [20, 50], modo: "terrestre", vel: 6, espera: [2, 7], radio: 9 },
     zorro: { max: 1, prob: 0.04, vida: [25, 50], modo: "terrestre", vel: 3.2, espera: [2, 6], radio: 10 },
     gineta: { max: 1, prob: 0.04, vida: [20, 45], modo: "terrestre", vel: 3.0, espera: [2, 6], radio: 7 },
-    comadreja: { max: 1, prob: 0.07, vida: [20, 45], modo: "terrestre", vel: 4.0, espera: [1, 4], radio: 5 },
+    comadreja: { max: 2, prob: 0.07, vida: [20, 45], modo: "terrestre", vel: 4.0, espera: [1, 4], radio: 5 },
     gallina: { max: 0, prob: 0, modo: "terrestre", vel: 1.2, espera: [1, 5], radio: 2.5 },
     oveja_negra: { max: 0, prob: 0, modo: "terrestre", vel: 1.0, espera: [2, 8], radio: 3 },
-    rana: { max: 2, prob: 0.35, vida: [40, 90], modo: "terrestre", vel: 2.5, espera: [2, 6], radio: 2.5, agua: true },
-    sapo: { max: 1, prob: 0.12, vida: [40, 80], modo: "terrestre", vel: 1.2, espera: [3, 9], radio: 2.5, agua: true },
-    libelula: { max: 2, prob: 0.40, vida: [30, 70], modo: "volador", vel: 5, espera: [1, 3], radio: 4, agua: true, alturaMax: 0.5 },
-    oruga: { max: 2, prob: 0.30, vida: [60, 120], modo: "terrestre", vel: 0.5, espera: [2, 6], radio: 1.5 },
+    rana: { max: 3, prob: 0.35, vida: [40, 90], modo: "terrestre", vel: 2.5, espera: [2, 6], radio: 2.5, agua: true },
+    sapo: { max: 2, prob: 0.20, vida: [40, 80], modo: "terrestre", vel: 1.2, espera: [3, 9], radio: 2.5, agua: true },
+    sapo_corredor: { max: 2, prob: 0.20, vida: [35, 75], modo: "terrestre", vel: 3.0, espera: [1, 4], radio: 4, agua: true },
+    aguila: { max: 1, prob: 0.10, vida: [25, 60], modo: "volador", vel: 7.5, espera: [5, 12], radio: 60, alturaMax: 2.6 },
+    libelula: { max: 4, prob: 0.40, vida: [30, 70], modo: "volador", vel: 5, espera: [1, 3], radio: 4, agua: true, alturaMax: 0.5 },
+    oruga: { max: 5, prob: 0.30, vida: [60, 120], modo: "terrestre", vel: 0.5, espera: [2, 6], radio: 1.5 },
     mariquita: { max: 2, prob: 0.35, vida: [40, 90], modo: "terrestre", vel: 0.8, espera: [1, 4], radio: 2 },
+    sanjuanero: { max: 4, prob: 0.25, vida: [40, 90], modo: "terrestre", vel: 0.7, espera: [1, 4], radio: 2 },
   };
   const fauna = [];
   const faunaPorId = new Map(); // id de objeto del mapa → bicho anclado
@@ -1189,10 +1709,10 @@
       cuenta[especie] = (cuenta[especie] || 0) + 1;
     }
   }
-  // arranque con algo de vidilla, y a partir de ahí el dado cada 10 s
+  // arranque con algo de vidilla, y a partir de ahí el dado cada 5 s
   function crearFaunaLibre() {
     for (let i = 0; i < 3; i++) pasoAparicion(1.5);
-    setInterval(pasoAparicion, 10000);
+    setInterval(pasoAparicion, 5000);
   }
   // objetos animal/insecto del mapa ⇄ bichos anclados (querencia editable)
   function sincronizarFaunaMapa() {
@@ -1339,8 +1859,11 @@
     }
     if (mejor) { mostrarFicha(mejor); return; }
     // objetos del mapa, contando toda la silueta del sprite (copa incluida);
-    // si hay varios solapados gana el de base más baja (el que se ve delante)
+    // si hay varios solapados gana el de base más baja (el que se ve delante).
+    // Los letreros de la peña van en su propia capa por delante de todo lo
+    // demás (árboles incluidos), si no un árbol cercano se "comería" el click.
     let elegido = null, baseMax = -1;
+    let letrero = null, letreroBaseMax = -1;
     for (const obj of mapa.objetos) {
       if (ESPECIES_FAUNA[obj.tipo]) continue; // animales: ya buscados como bichos
       if (!FICHAS[obj.tipo] && obj.tipo !== "letrero") continue;
@@ -1349,15 +1872,16 @@
       const [w, h] = tamanoObjeto(obj.tipo);
       const aw = Math.max(spr.frames[0].ancho / PX, w), ah = Math.max(spr.frames[0].alto / PX, h);
       const cx = obj.col + w / 2, base = obj.fila + h;
-      if (Math.abs(colF - cx) <= aw / 2 && filaF >= base - ah && filaF <= base && base > baseMax) {
-        baseMax = base; elegido = obj;
+      if (Math.abs(colF - cx) <= aw / 2 && filaF >= base - ah && filaF <= base) {
+        if (obj.tipo === "letrero") {
+          if (base > letreroBaseMax) { letreroBaseMax = base; letrero = obj; }
+        } else if (base > baseMax) {
+          baseMax = base; elegido = obj;
+        }
       }
     }
-    if (elegido) {
-      if (elegido.tipo === "letrero") mostrarLetrero(elegido);
-      else mostrarFicha(elegido.tipo);
-      return;
-    }
+    if (letrero) { mostrarLetrero(letrero); return; }
+    if (elegido) { mostrarFicha(elegido.tipo); return; }
     const c0 = Math.floor(colF);
     for (let df = 0; df <= 5; df++) {
       for (const c of [c0, c0 - 1, c0 + 1]) {
@@ -1671,6 +2195,10 @@
     dibujar(tAcum);
     requestAnimationFrame(loop);
   }
+  // los assets personalizados pueden añadir tipos sólidos o fauna nueva:
+  // se cargan antes de calcular ocupación y arrancar la fauna
+  cargarAssetsPersonalizados();
+  recalcularOcupacion();
   reconstruirMundo();
   resize();
   crearFaunaLibre();

@@ -58,6 +58,9 @@
     libe: "#3da8c8", libe_d: "#2c80a0",
     oruga_v: "#9ac24e", oruga_l: "#c2da6e", oruga_d: "#5f7a2c",
     zorro_n: "#d8743a", zorro_d: "#b05a28",
+    corredor_v: "#8a9a52", corredor_d: "#67753a",   // sapo corredor (oliva)
+    calzada: "#6e5236", calzada_l: "#8a6a48",        // águila calzada (parda)
+    sanjuan: "#8a5524", sanjuan_l: "#a86a30", sanjuan_d: "#5e3818", // escarabajo sanjuanero
     // caseta
     tejado: "#c25744", tejado_d: "#9b4234", tejado_l: "#d4705c", pared: "#efe3c4",
     pared_d: "#d4c49c", zocalo: "#a89878",
@@ -590,27 +593,27 @@
 
   // ── fauna silvestre (vista lateral mirando a la derecha) ──────────────
   function spriteGorrion() {
-    const g = crearGrid(10, 9);
-    rect(g, 0, 4, 3, 1, "pardo_d");          // cola
-    circulo(g, 5, 5, 2.6, "pardo");          // cuerpo
-    rect(g, 3, 6, 4, 2, "crema");            // pecho
-    rect(g, 3, 4, 4, 2, "pardo_d");          // ala plegada
-    circulo(g, 7, 3, 1.8, "pardo_d");        // cabeza con capirote
-    punto(g, 8, 4, "crema");                 // mejilla
-    punto(g, 7, 3, "negro");                 // ojo
-    punto(g, 9, 4, "negro");                 // pico
-    punto(g, 4, 8, "pardo_d"); punto(g, 6, 8, "pardo_d"); // patas
+    const g = crearGrid(8, 7);
+    rect(g, 0, 3, 2, 1, "pardo_d");          // cola
+    circulo(g, 4, 4, 2, "pardo");            // cuerpo menudo
+    rect(g, 2, 5, 3, 1, "crema");            // pecho claro
+    rect(g, 2, 3, 3, 2, "pardo_d");          // ala plegada
+    circulo(g, 6, 2, 1.3, "pardo_d");        // cabeza con capirote
+    punto(g, 6, 3, "crema");                 // mejilla
+    punto(g, 6, 2, "negro");                 // ojo
+    punto(g, 7, 3, "negro");                 // pico
+    punto(g, 3, 6, "pardo_d"); punto(g, 5, 6, "pardo_d"); // patitas
     return frame(g);
   }
   function spriteGorrionVuelo(f) {
-    const g = crearGrid(12, 10);
-    rect(g, 0, 5, 3, 1, "pardo_d");
-    circulo(g, 6, 5, 2.4, "pardo");
-    rect(g, 4, 6, 4, 1, "crema");
-    circulo(g, 9, 4, 1.6, "pardo_d");
-    punto(g, 9, 4, "negro"); punto(g, 11, 5, "negro");
-    if (f === 0) { rect(g, 4, 1, 2, 4, "pardo_d"); rect(g, 5, 0, 2, 2, "pardo"); } // alas arriba
-    else { rect(g, 4, 6, 2, 3, "pardo_d"); rect(g, 5, 8, 2, 1, "pardo"); }          // alas abajo
+    const g = crearGrid(10, 8);
+    rect(g, 0, 4, 2, 1, "pardo_d");          // cola
+    circulo(g, 5, 4, 2, "pardo");            // cuerpo
+    rect(g, 3, 5, 3, 1, "crema");            // pecho
+    circulo(g, 7, 3, 1.3, "pardo_d");        // cabeza
+    punto(g, 7, 3, "negro"); punto(g, 9, 4, "negro"); // ojo y pico
+    if (f === 0) { rect(g, 3, 1, 2, 3, "pardo_d"); rect(g, 4, 0, 2, 2, "pardo"); } // alas arriba
+    else { rect(g, 3, 5, 2, 2, "pardo_d"); rect(g, 4, 6, 2, 1, "pardo"); }          // alas abajo
     return frame(g);
   }
   function spriteUrraca() {
@@ -756,14 +759,24 @@
     return frame(g);
   }
   function spriteSapo(f) {
-    const g = crearGrid(11, 8);
-    circulo(g, 5, 5, 3.2, "pardo");          // cuerpo rechoncho
-    rect(g, 2, 6, 7, 2, "pardo_d");
-    punto(g, 3, 2, "pardo"); punto(g, 8, 2, "pardo"); // bultos oculares
-    punto(g, 3, 2, "negro"); punto(g, 8, 2, "negro");
-    punto(g, 4, 4, "pardo_d"); punto(g, 6, 3, "pardo_d"); punto(g, 7, 5, "pardo_d"); // verrugas
-    rect(g, f === 0 ? 2 : 3, 7, 2, 1, "pardo_d");
-    rect(g, f === 0 ? 7 : 6, 7, 2, 1, "pardo_d");
+    const g = crearGrid(12, 9);
+    // ancas/patas traseras potentes que alternan al andar (no salta: camina)
+    if (f === 0) { rect(g, 0, 4, 3, 2, "pardo_d"); rect(g, 9, 6, 3, 2, "pardo_d"); }
+    else         { rect(g, 0, 6, 3, 2, "pardo_d"); rect(g, 9, 4, 3, 2, "pardo_d"); }
+    circulo(g, 6, 5, 4, "pardo");            // cuerpo ancho y rechoncho
+    rect(g, 3, 7, 6, 2, "pardo_d");          // vientre en sombra
+    // patitas delanteras que asoman al frente, alternando
+    rect(g, 4, 7, 1, 2, f === 0 ? "pardo_l" : "pardo_d");
+    rect(g, 7, 7, 1, 2, f === 0 ? "pardo_d" : "pardo_l");
+    // glándulas paratoides marcadas detrás de cada ojo
+    punto(g, 3, 3, "pardo_l"); punto(g, 9, 3, "pardo_l");
+    // ojos saltones con iris cobrizo y pupila
+    punto(g, 4, 2, "amarillo"); punto(g, 8, 2, "amarillo");
+    punto(g, 4, 2, "negro");    punto(g, 8, 2, "negro");
+    punto(g, 6, 2, "pardo");                 // hocico romo entre los ojos
+    // verrugas dispersas (su piel rugosa, no de piedra)
+    punto(g, 5, 5, "pardo_d"); punto(g, 7, 4, "pardo_d"); punto(g, 6, 6, "pardo_d");
+    punto(g, 4, 4, "pardo_l"); punto(g, 8, 5, "pardo_l");
     return frame(g);
   }
   function spriteLibelula(f) {
@@ -858,6 +871,80 @@
     punto(g, 1, 8, "blanco");                // rabito
     if (f === 0) { rect(g, 3, 12, 3, 1, "pardo_d"); rect(g, 8, 12, 3, 1, "pardo_d"); }
     else { rect(g, 1, 12, 3, 1, "pardo_d"); rect(g, 9, 12, 3, 1, "pardo_d"); } // zancada
+    return frame(g);
+  }
+  function spriteSapoCorredor(f) {
+    const g = crearGrid(11, 8);
+    circulo(g, 5, 5, 3.2, "corredor_v");      // cuerpo achatado oliva
+    rect(g, 2, 6, 7, 2, "corredor_d");
+    rect(g, 2, 3, 7, 1, "flor_a");            // raya dorsal amarilla (su seña)
+    punto(g, 3, 2, "corredor_v"); punto(g, 8, 2, "corredor_v"); // bultos oculares
+    punto(g, 3, 2, "negro"); punto(g, 8, 2, "negro");
+    punto(g, 4, 5, "corredor_d"); punto(g, 6, 5, "corredor_d"); // verrugas
+    // corre con zancada amplia en vez de saltar
+    rect(g, f === 0 ? 0 : 2, 7, 2, 1, "corredor_d");
+    rect(g, f === 0 ? 9 : 7, 7, 2, 1, "corredor_d");
+    return frame(g);
+  }
+  function spriteAguila() {
+    const g = crearGrid(18, 17);
+    // cola larga con banda terminal oscura
+    rect(g, 1, 9, 5, 3, "pardo_d");
+    rect(g, 1, 11, 5, 1, "negro");
+    // cuerpo robusto y ancho de rapaz
+    circulo(g, 9, 9, 5, "calzada");
+    rect(g, 5, 9, 9, 6, "crema");             // pecho y vientre claros (morfo claro)
+    punto(g, 7, 11, "calzada"); punto(g, 10, 12, "calzada"); punto(g, 12, 11, "calzada"); // motas pardas
+    // ala plegada parda y potente sobre el lomo
+    rect(g, 4, 4, 7, 6, "pardo_d");
+    rect(g, 4, 4, 7, 1, "calzada_l");         // borde superior más claro
+    punto(g, 5, 9, "negro"); punto(g, 7, 9, "negro"); punto(g, 9, 9, "negro"); // filo de las plumas
+    // cabeza con capuchón claro y mirada fiera
+    circulo(g, 13, 5, 2.6, "calzada");
+    rect(g, 11, 4, 4, 2, "crema");
+    punto(g, 14, 5, "flor_a"); punto(g, 15, 5, "negro"); // ojo
+    rect(g, 15, 5, 2, 1, "flor_a"); rect(g, 16, 5, 1, 2, "negro"); punto(g, 16, 6, "negro"); // pico ganchudo
+    // patas "calzadas" emplumadas con garras amarillas
+    rect(g, 7, 14, 2, 2, "crema"); rect(g, 11, 14, 2, 2, "crema");
+    punto(g, 7, 16, "flor_a"); punto(g, 8, 16, "flor_a");
+    punto(g, 11, 16, "flor_a"); punto(g, 12, 16, "flor_a");
+    return frame(g);
+  }
+  function spriteAguilaVuelo(f) {
+    // silueta lateral, como el resto de aves: cabeza al frente, cola atrás,
+    // y un ala potente que bate arriba/abajo. Cuerpo siempre macizo (sin huecos).
+    const g = crearGrid(24, 14);
+    rect(g, 0, 7, 4, 3, "pardo_d");           // cola en abanico
+    rect(g, 0, 9, 4, 1, "negro");             // banda terminal
+    rect(g, 4, 7, 11, 3, "calzada");          // cuerpo alargado y robusto
+    rect(g, 5, 9, 9, 1, "crema");             // vientre claro
+    circulo(g, 17, 7, 2, "calzada");          // cabeza adelantada
+    rect(g, 16, 6, 3, 1, "crema");            // nuca clara
+    punto(g, 18, 7, "flor_a");                // ojo amarillo
+    rect(g, 19, 7, 2, 1, "negro"); punto(g, 20, 8, "negro"); // pico ganchudo
+    if (f === 0) {                            // ala alzada (planeo / remonte)
+      rect(g, 7, 1, 8, 6, "pardo_d");
+      rect(g, 7, 1, 8, 1, "calzada_l");
+      for (const x of [7, 9, 11, 13]) punto(g, x, 0, "pardo_d"); // plumas digitadas
+    } else {                                  // ala batida hacia abajo
+      rect(g, 7, 7, 8, 6, "pardo_d");
+      rect(g, 7, 11, 8, 1, "calzada_l");
+      for (const x of [7, 9, 11, 13]) punto(g, x, 13, "pardo_d");
+    }
+    return frame(g);
+  }
+  function spriteSanjuanero(f) {
+    const g = crearGrid(8, 8);
+    circulo(g, 4, 5, 2.6, "sanjuan");         // élitros pardos
+    rect(g, 3, 3, 3, 4, "sanjuan_l");         // brillo dorsal
+    punto(g, 4, 4, "sanjuan_d"); punto(g, 4, 6, "sanjuan_d"); // costura
+    rect(g, 3, 1, 2, 2, "negro");             // cabeza/pronoto oscuro
+    // antenas laminadas en abanico (su rasgo)
+    punto(g, 2, 0, "sanjuan_l"); punto(g, 1, 0, "sanjuan_l"); punto(g, 1, 1, "sanjuan_l");
+    punto(g, 5, 0, "sanjuan_l"); punto(g, 6, 0, "sanjuan_l"); punto(g, 6, 1, "sanjuan_l");
+    // patitas alternas
+    punto(g, f === 0 ? 1 : 2, 5, "negro"); punto(g, f === 0 ? 6 : 5, 5, "negro");
+    punto(g, f === 0 ? 2 : 1, 7, "negro"); punto(g, f === 0 ? 5 : 6, 7, "negro");
     return frame(g);
   }
 
@@ -1014,9 +1101,12 @@
     culebra: { frames: [spriteCulebra(0), spriteCulebra(1)], sombra: 0 },
     rana: { frames: [spriteRana(0), spriteRana(1)], sombra: 0 },
     sapo: { frames: [spriteSapo(0), spriteSapo(1)], sombra: 0 },
+    sapo_corredor: { frames: [spriteSapoCorredor(0), spriteSapoCorredor(1)], sombra: 0 },
+    aguila: { frames: [spriteAguila()], vuelo: [spriteAguilaVuelo(0), spriteAguilaVuelo(1)], sombra: 6 },
     libelula: { frames: [spriteLibelula(0)], vuelo: [spriteLibelula(1), spriteLibelula(2)], sombra: 2 },
     oruga: { frames: [spriteOruga(0), spriteOruga(1)], sombra: 0 },
     mariquita: { frames: [spriteMariquita(0), spriteMariquita(1)], sombra: 0 },
+    sanjuanero: { frames: [spriteSanjuanero(0), spriteSanjuanero(1)], sombra: 0 },
     liebre: { frames: [spriteLiebre(0), spriteLiebre(1)], sombra: 5 },
     zorro: { frames: [spriteZorro(0), spriteZorro(1)], sombra: 6 },
     gineta: { frames: [spriteGineta(0), spriteGineta(1)], sombra: 5 },
@@ -1053,5 +1143,5 @@
     ctx.restore();
   }
 
-  Object.assign(window.Granja, { PALETA, SPRITES, dibujarSprite, dibujarSombra, hash2, crearSpritesJugador, PEINADOS });
+  Object.assign(window.Granja, { PALETA, SPRITES, dibujarSprite, dibujarSombra, hash2, crearSpritesJugador, PEINADOS, gridACanvas });
 })();

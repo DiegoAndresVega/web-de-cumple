@@ -251,16 +251,6 @@
   // Posición inicial del jugador, junto al patio.
   const JUGADOR_DEFECTO = { col: 88, fila: 70 };
 
-  // Tipos de objeto que bloquean el paso (además de agua/valla/fuera).
-  // Las plantas pisables y los animales (que ahora pasean) no bloquean.
-  const OBJETOS_SOLIDOS = new Set([
-    "caseta", "gallinero", "letrina", "valla",
-    "pino", "roble", "encina", "olivo",
-    "manzano", "peral", "cerezo", "ciruelo", "nogal", "almendro", "castano", "pistacho",
-    "endrino", "arandano", "lavanda", "retama", "espino", "zarza", "romero",
-    "letrero",
-  ]);
-
   // Pinceles del editor agrupados por categorías. Los animales e insectos
   // colocados son "querencias": el bicho aparece ahí y pasea alrededor.
   const CATEGORIAS_OBJETO = [
@@ -270,11 +260,20 @@
     ["PLANTAS", ["arandano", "lavanda", "fresa", "flores", "retama", "zarza",
       "amapola", "tomillo", "romero"]],
     ["ANIMALES", ["gallina", "oveja_negra", "liebre", "zorro", "gineta", "comadreja",
-      "gorrion", "urraca", "abubilla", "ciguena", "perdiz",
-      "lagartija", "lagarto", "culebra", "rana", "sapo"]],
-    ["INSECTOS", ["libelula", "oruga", "mariquita"]],
+      "gorrion", "urraca", "abubilla", "ciguena", "aguila", "perdiz",
+      "lagartija", "lagarto", "culebra", "rana", "sapo", "sapo_corredor"]],
+    ["INSECTOS", ["libelula", "oruga", "mariquita", "sanjuanero"]],
   ];
   const TIPOS_OBJETO = CATEGORIAS_OBJETO.flatMap(([, tipos]) => tipos);
+
+  // Tipos de objeto que bloquean el paso (además de agua/valla/fuera): solo
+  // árboles y escenario. Plantas, animales, insectos y letreros se pueden
+  // atravesar caminando.
+  const OBJETOS_SOLIDOS = new Set(
+    CATEGORIAS_OBJETO
+      .filter(([categoria]) => categoria === "ESCENARIO" || categoria === "ÁRBOLES")
+      .flatMap(([, tipos]) => tipos)
+  );
 
   window.Granja = {
     METROS_POR_CELDA, COLS, FILAS,
