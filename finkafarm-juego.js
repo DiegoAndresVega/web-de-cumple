@@ -31,12 +31,15 @@
   const clienteId = `c_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   let refMapa = null;
   let refAssets = null;
+  let refRanking = null;
   try {
     if (window.firebase && firebase.database) {
       refMapa = firebase.database().ref("finkafarm/mapa");
       // assets personalizados compartidos: cada uno bajo su tipo, guardado como
       // texto JSON (los frames llevan celdas null que Firebase corromperia en arrays)
       refAssets = firebase.database().ref("finkafarm/assets");
+      // ranking de Charca Panic compartido entre todos los dispositivos
+      refRanking = firebase.database().ref("finkafarm/rankingCharca");
     }
   } catch (e) {}
 
@@ -2130,26 +2133,51 @@
   }
 
   // ── ranking de Charca Panic: quien termina el juego entra en el cartel ─────
-  // Guardamos nombre + aspecto del personaje + puntos en localStorage; el
-  // letrero junto a la charca muestra el top con el avatar de cada uno.
+  // El ranking se comparte entre todos los dispositivos por Firebase
+  // (finkafarm/rankingCharca); localStorage queda como caché/fallback si no
+  // hay conexión. Cada entrada: nombre + aspecto del personaje + puntos.
   const RANKING_CHARCA_KEY = "charca-panic-ranking";
   const RANKING_CHARCA_MAX = 8;
   function cargarRankingCharca() {
     try { const v = JSON.parse(localStorage.getItem(RANKING_CHARCA_KEY)); return Array.isArray(v) ? v : []; }
     catch (e) { return []; }
   }
-  let rankingCharca = cargarRankingCharca();
+  // Firebase devuelve un array como tal si las claves son contiguas, o como
+  // objeto si no; normalizamos a array, ordenamos y nos quedamos con el top.
+  function normalizarRanking(v) {
+    const arr = Array.isArray(v) ? v : (v ? Object.values(v) : []);
+    return arr
+      .filter((e) => e && typeof e.puntos === "number")
+      .sort((a, b) => (b.puntos - a.puntos) || (a.fecha - b.fecha))
+      .slice(0, RANKING_CHARCA_MAX);
+  }
+  let rankingCharca = normalizarRanking(cargarRankingCharca());
   let rankingCharcaSprites = null; // cache de avatares (se reconstruye al cambiar)
+  function aplicarRanking(lista) {
+    rankingCharca = normalizarRanking(lista);
+    rankingCharcaSprites = null;
+    try { localStorage.setItem(RANKING_CHARCA_KEY, JSON.stringify(rankingCharca)); } catch (e) {}
+  }
+  // listener en vivo: cuando alguien (móvil u ordenador) entra en el ranking,
+  // el cartel se actualiza en todos los dispositivos sin recargar
+  if (refRanking) {
+    refRanking.on("value", (snap) => aplicarRanking(snap.val()));
+  }
   function registrarRankingCharca(puntos) {
-    rankingCharca.push({
+    const entrada = {
       nombre: (miNombre || "Anónimo").slice(0, 14),
       aspecto: miMaximus ? { maximus: miMaximus } : miAspecto,
       puntos: puntos | 0, fecha: Date.now(),
-    });
-    rankingCharca.sort((a, b) => (b.puntos - a.puntos) || (a.fecha - b.fecha));
-    rankingCharca = rankingCharca.slice(0, RANKING_CHARCA_MAX);
-    try { localStorage.setItem(RANKING_CHARCA_KEY, JSON.stringify(rankingCharca)); } catch (e) {}
-    rankingCharcaSprites = null;
+    };
+    // local inmediato (y único camino si no hay Firebase)
+    aplicarRanking([...rankingCharca, entrada]);
+    // compartido: transacción que fusiona y mantiene el top global sin que dos
+    // dispositivos que terminan a la vez se pisen la lista
+    if (refRanking) {
+      refRanking.transaction((lista) => normalizarRanking(
+        (Array.isArray(lista) ? lista : (lista ? Object.values(lista) : [])).concat([entrada])
+      )).catch(() => {});
+    }
   }
   // avatar (frame "abajo") de cada entrada, construido una sola vez
   function spritesRankingCharca() {
