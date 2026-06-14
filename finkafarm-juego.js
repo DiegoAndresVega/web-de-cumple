@@ -593,7 +593,8 @@
     if (toque && e.pointerId === toque.id) {
       if (!toque.multi && modo === "jugar" && performance.now() - toque.t < 400 &&
           Math.hypot(e.clientX - toque.x, e.clientY - toque.y) < 8) {
-        fichaEnPantalla(e.clientX, e.clientY);
+        if (!intentarCharcaPanic(e.clientX, e.clientY) && !intentarRanking(e.clientX, e.clientY))
+          fichaEnPantalla(e.clientX, e.clientY);
       }
       toque = null;
     }
@@ -616,7 +617,7 @@
     castano: "CASTAÑO", arandano: "ARÁNDANO", lavanda: "LAVANDA", fresa: "FRESA",
     flores: "FLORES", retama: "RETAMA", espino: "ESPINO", zarza: "ZARZA",
     amapola: "AMAPOLA", tomillo: "TOMILLO", romero: "ROMERO", euforbio: "EUFORBIO",
-    gallina: "GALLINA", oveja_negra: "OVEJA", liebre: "LIEBRE",
+    gallina: "GALLINA", gallina_negra: "GALLINA NEGRA", oveja_negra: "OVEJA", liebre: "LIEBRE",
     zorro: "ZORRO", gineta: "GINETA", comadreja: "COMADREJA",
     gorrion: "GORRIÓN", urraca: "URRACA", abubilla: "ABUBILLA", ciguena: "CIGÜEÑA",
     aguila: "ÁGUILA", perdiz: "PERDIZ", lagartija: "LAGARTIJA", lagarto: "LAGARTO", culebra: "CULEBRA",
@@ -1784,6 +1785,7 @@
     romero: ["Romero", "Salvia rosmarinus", "🌿"],
     euforbio: ["Lechetrezna serrada", "Euphorbia serrata", "🌿"],
     gallina: ["Gallina", "Gallus gallus domesticus", "🐔"],
+    gallina_negra: ["Gallina negra", "Gallus gallus domesticus", "🐔"],
     oveja_negra: ["Oveja negra", "Ovis aries", "🐑"],
     gorrion: ["Gorrión común", "Passer domesticus", "🐦"],
     urraca: ["Urraca", "Pica pica", "🐦‍⬛"],
@@ -1863,6 +1865,7 @@
     gineta: { max: 1, prob: 0.04, vida: [20, 45], modo: "terrestre", vel: 3.0, espera: [2, 6], radio: 7 },
     comadreja: { max: 2, prob: 0.07, vida: [20, 45], modo: "terrestre", vel: 4.0, espera: [1, 4], radio: 5 },
     gallina: { max: 0, prob: 0, modo: "terrestre", vel: 1.2, espera: [1, 5], radio: 2.5 },
+    gallina_negra: { max: 0, prob: 0, modo: "terrestre", vel: 1.2, espera: [1, 5], radio: 2.5 },
     oveja_negra: { max: 0, prob: 0, modo: "terrestre", vel: 1.0, espera: [2, 8], radio: 3 },
     rana: { max: 3, prob: 0.35, vida: [40, 90], modo: "terrestre", vel: 2.5, espera: [2, 6], radio: 2.5, agua: true },
     sapo: { max: 2, prob: 0.20, vida: [40, 80], modo: "terrestre", vel: 1.2, espera: [3, 9], radio: 2.5, agua: true },
@@ -1876,10 +1879,12 @@
   const fauna = [];
   const faunaPorId = new Map(); // id de objeto del mapa → bicho anclado
 
-  function crearBicho(especie, x, y, anclado) {
+  function crearBicho(especie, x, y, anclado, querencia) {
     const def = ESPECIES_FAUNA[especie];
     const b = {
-      especie, x, y, tx: x, ty: y, cx: x, cy: y, radio: def.radio,
+      especie, x, y, tx: x, ty: y,
+      cx: querencia ? querencia.cx : x, cy: querencia ? querencia.cy : y,
+      radio: querencia ? querencia.radio : def.radio,
       estado: "quieto", espera: 1 + Math.random() * 6,
       espejo: Math.random() < 0.5, altura: 0, anclado: anclado || null,
     };
@@ -1907,21 +1912,32 @@
     }
     return null;
   }
-  // punto muy cercano a un objeto del mapa de un tipo dado (p. ej. la planta
-  // nutricia de un insecto): si no hay ninguno colocado, no aparece nadie
-  const RADIO_CERCA_DE = 2;
-  function puntoCercaDe(tipo) {
+  // querencia muy cercana a un objeto del mapa de un tipo dado (p. ej. la
+  // planta nutricia de un insecto): si no hay ninguno colocado, no aparece
+  // nadie. La querencia se centra en el grupo de plantas del mismo tipo que
+  // haya cerca de la elegida, con radio según su extensión: una planta sola
+  // deja pasear poco (radioBase) y un grupo grande deja pasear más.
+  const RADIO_CERCA_DE = 2; // margen para el punto de aparición junto a la planta
+  const DIST_GRUPO_PLANTA = 6; // distancia máx. entre plantas del mismo grupo
+  function puntoCercaDe(tipo, radioBase) {
     const objetivos = mapa.objetos.filter((o) => o.tipo === tipo);
     if (!objetivos.length) return null;
+    const semilla = objetivos[Math.floor(Math.random() * objetivos.length)];
+    let minC = semilla.col, maxC = semilla.col, minF = semilla.fila, maxF = semilla.fila;
+    for (const o of objetivos) {
+      if (Math.abs(o.col - semilla.col) > DIST_GRUPO_PLANTA || Math.abs(o.fila - semilla.fila) > DIST_GRUPO_PLANTA) continue;
+      minC = Math.min(minC, o.col); maxC = Math.max(maxC, o.col);
+      minF = Math.min(minF, o.fila); maxF = Math.max(maxF, o.fila);
+    }
+    const cx = (minC + maxC) / 2 + 0.5, cy = (minF + maxF) / 2 + 0.5;
+    const radio = Math.max(radioBase, Math.max(maxC - minC, maxF - minF) / 2 + RADIO_CERCA_DE);
     for (let i = 0; i < 30; i++) {
-      const o = objetivos[Math.floor(Math.random() * objetivos.length)];
       const dc = Math.floor(Math.random() * (RADIO_CERCA_DE * 2 + 1)) - RADIO_CERCA_DE;
       const df = Math.floor(Math.random() * (RADIO_CERCA_DE * 2 + 1)) - RADIO_CERCA_DE;
-      const c = o.col + dc, f = o.fila + df;
-      if (transitable(c, f)) return [c + 0.5, f + 0.5];
+      const c = semilla.col + dc, f = semilla.fila + df;
+      if (transitable(c, f)) return { x: c + 0.5, y: f + 0.5, cx, cy, radio };
     }
-    const o = objetivos[Math.floor(Math.random() * objetivos.length)];
-    return [o.col + 0.5, o.fila + 0.5];
+    return { x: semilla.col + 0.5, y: semilla.fila + 0.5, cx, cy, radio };
   }
   // tirada de aparición: cada especie sale según su rareza, hasta su tope
   function pasoAparicion(factor = 1) {
@@ -1930,11 +1946,18 @@
     for (const [especie, def] of Object.entries(ESPECIES_FAUNA)) {
       if (!def.max || (cuenta[especie] || 0) >= def.max) continue;
       if (Math.random() > def.prob * factor) continue;
-      const p = def.cercaDe ? puntoCercaDe(def.cercaDe)
-        : def.agua ? puntoDeAgua(def.modo === "terrestre")
-        : celdaFaunaAleatoria();
+      let p, querencia;
+      if (def.cercaDe) {
+        const q = puntoCercaDe(def.cercaDe, def.radio);
+        if (!q) continue;
+        p = [q.x, q.y]; querencia = q;
+      } else if (def.agua) {
+        p = puntoDeAgua(def.modo === "terrestre");
+      } else {
+        p = celdaFaunaAleatoria();
+      }
       if (!p) continue;
-      const b = crearBicho(especie, p[0], p[1]);
+      const b = crearBicho(especie, p[0], p[1], null, querencia);
       b.vida = def.vida[0] + Math.random() * (def.vida[1] - def.vida[0]);
       cuenta[especie] = (cuenta[especie] || 0) + 1;
     }
@@ -2039,9 +2062,9 @@
         b.x = b.tx; b.y = b.ty;
         b.estado = "quieto";
         b.espera = def.espera[0] + Math.random() * (def.espera[1] - def.espera[0]);
-        // los bichos libres no acuáticos llevan su querencia consigo:
-        // así van derivando por toda la finca
-        if (!b.anclado && !def.agua) { b.cx = b.x; b.cy = b.y; }
+        // los bichos libres no acuáticos ni atados a una planta llevan su
+        // querencia consigo: así van derivando por toda la finca
+        if (!b.anclado && !def.agua && !def.cercaDe) { b.cx = b.x; b.cy = b.y; }
       } else {
         b.x += (dx / d) * paso;
         b.y += (dy / d) * paso;
@@ -2077,6 +2100,68 @@
   }
 
   // qué especie hay bajo un punto de pantalla (fauna > objetos > exterior)
+  // ── Charca Panic: letrero especial junto a la charca (no se entra al agua) ─
+  // Cartel brillante en la celda (59,75); al acercarse y leerlo (click), ofrece
+  // lanzar el mini-juego acuático. Su base ancla en la fila 76 (abajo-centro).
+  const LETRERO_CHARCA = { col: 59, fila: 75, rJugador: 4.2 };
+  const LETRERO_RANKING = { col: 57, fila: 77 }; // cartelito del ranking, al lado
+  const elModalCharca = document.getElementById("modal-charca");
+  function intentarCharcaPanic(px, py) {
+    if (!window.CharcaPanic || !elModalCharca) return false;
+    if (elModalCharca.classList.contains("activo")) return false;
+    const [col, fila] = pantallaACelda(px, py);
+    // silueta del cartel: 1 celda de ancho y el tablero asoma por encima
+    const cx = LETRERO_CHARCA.col + 0.5;
+    if (Math.abs(col - cx) > 1.0 || fila < LETRERO_CHARCA.fila - 1.6 || fila > LETRERO_CHARCA.fila + 1.2) return false;
+    const dJug = Math.hypot(jugador.x - cx, jugador.y - (LETRERO_CHARCA.fila + 0.5));
+    if (dJug > LETRERO_CHARCA.rJugador) return false;
+    elModalCharca.classList.add("activo");
+    return true;
+  }
+  if (elModalCharca) {
+    document.getElementById("btn-charca-no").addEventListener("click", () => {
+      elModalCharca.classList.remove("activo");
+    });
+    document.getElementById("btn-charca-si").addEventListener("click", () => {
+      elModalCharca.classList.remove("activo");
+      teclas.clear(); // que el personaje no siga andando bajo la capa del juego
+      window.CharcaPanic.abrir(undefined, { alGanar: registrarRankingCharca });
+    });
+  }
+
+  // ── ranking de Charca Panic: quien termina el juego entra en el cartel ─────
+  // Guardamos nombre + aspecto del personaje + puntos en localStorage; el
+  // letrero junto a la charca muestra el top con el avatar de cada uno.
+  const RANKING_CHARCA_KEY = "charca-panic-ranking";
+  const RANKING_CHARCA_MAX = 8;
+  function cargarRankingCharca() {
+    try { const v = JSON.parse(localStorage.getItem(RANKING_CHARCA_KEY)); return Array.isArray(v) ? v : []; }
+    catch (e) { return []; }
+  }
+  let rankingCharca = cargarRankingCharca();
+  let rankingCharcaSprites = null; // cache de avatares (se reconstruye al cambiar)
+  function registrarRankingCharca(puntos) {
+    rankingCharca.push({
+      nombre: (miNombre || "Anónimo").slice(0, 14),
+      aspecto: miMaximus ? { maximus: miMaximus } : miAspecto,
+      puntos: puntos | 0, fecha: Date.now(),
+    });
+    rankingCharca.sort((a, b) => (b.puntos - a.puntos) || (a.fecha - b.fecha));
+    rankingCharca = rankingCharca.slice(0, RANKING_CHARCA_MAX);
+    try { localStorage.setItem(RANKING_CHARCA_KEY, JSON.stringify(rankingCharca)); } catch (e) {}
+    rankingCharcaSprites = null;
+  }
+  // avatar (frame "abajo") de cada entrada, construido una sola vez
+  function spritesRankingCharca() {
+    if (!rankingCharcaSprites) {
+      rankingCharcaSprites = rankingCharca.map((e) => {
+        const g = spritesDeAspecto(e.aspecto || {});
+        return (g.abajo || g.lado || g.arriba).frames[0];
+      });
+    }
+    return rankingCharcaSprites;
+  }
+
   function fichaEnPantalla(px, py) {
     const [colF, filaF] = pantallaACelda(px, py);
     let mejor = null, mejorD = 1.0;
@@ -2271,6 +2356,157 @@
     lineas.forEach((t, i) => ctx.fillText(t, sx, by + pad + 9 + i * lh));
   }
 
+  // ── cartel especial de Charca Panic ──────────────────────────────────────
+  // Llamativo y distinto a los letreros de madera de la peña: poste turquesa,
+  // tablero con brillo pulsante, renacuajo, burbujas que suben y etiqueta.
+  function dibujarLetreroCharca(tiempo) {
+    const z = camara.zoom, tam = tamCelda();
+    const [bx, by] = celdaAPantalla(LETRERO_CHARCA.col + 0.5, LETRERO_CHARCA.fila + 1); // base abajo-centro
+    const bob = Math.sin(tiempo * 2) * 1.5 * z;
+    const pulso = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(tiempo * 4));
+    dibujarSombra(ctx, bx, by, 7, z);
+
+    // burbujas ascendentes alrededor
+    ctx.save();
+    ctx.fillStyle = "rgba(180,240,255,0.5)";
+    for (let i = 0; i < 4; i++) {
+      const t2 = (tiempo * 0.6 + i * 0.7) % 1;
+      const bxr = bx + Math.sin(tiempo * 2 + i * 2) * 9 * z + (i - 1.5) * 7 * z;
+      const byr = by - t2 * 44 * z;
+      ctx.globalAlpha = 1 - t2;
+      ctx.beginPath(); ctx.arc(bxr, byr, (1.4 + (i % 2)) * z, 0, 6.28); ctx.fill();
+    }
+    ctx.restore();
+
+    // poste turquesa con vetas
+    ctx.fillStyle = "#1f7d8c";
+    ctx.fillRect(bx - 2.5 * z, by - 20 * z + bob, 5 * z, 20 * z);
+    ctx.fillStyle = "#2ba0b3";
+    ctx.fillRect(bx - 2.5 * z, by - 20 * z + bob, 1.8 * z, 20 * z);
+
+    // tablero con aura de brillo
+    const bw = 34 * z, bh = 22 * z;
+    const tx = bx - bw / 2, ty = by - 44 * z + bob;
+    ctx.save();
+    ctx.shadowColor = "rgba(110,240,255," + pulso + ")";
+    ctx.shadowBlur = 18 * z;
+    ctx.fillStyle = "#0c3a4d";
+    ctx.fillRect(tx, ty, bw, bh);
+    ctx.restore();
+    // doble marco brillante
+    ctx.strokeStyle = "#6ff0ff"; ctx.lineWidth = 2 * z; ctx.strokeRect(tx, ty, bw, bh);
+    ctx.strokeStyle = "rgba(203,223,90,0.9)"; ctx.lineWidth = 1 * z;
+    ctx.strokeRect(tx + 2.5 * z, ty + 2.5 * z, bw - 5 * z, bh - 5 * z);
+
+    // renacuajo dibujado dentro del tablero
+    const rx = tx + bw * 0.34, ry = ty + bh * 0.5, wob = Math.sin(tiempo * 10) * 2 * z;
+    ctx.fillStyle = "#2f7d5b";
+    ctx.beginPath();
+    ctx.moveTo(rx - 2 * z, ry);
+    ctx.quadraticCurveTo(rx - 7 * z, ry + wob, rx - 10 * z, ry + wob);
+    ctx.quadraticCurveTo(rx - 7 * z, ry - 1 * z, rx - 2 * z, ry - 1 * z);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#7fd39a";
+    ctx.beginPath(); ctx.ellipse(rx, ry, 4.5 * z, 3.6 * z, 0, 0, 6.28); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(rx + 1.8 * z, ry - 1 * z, 1.4 * z, 0, 6.28); ctx.fill();
+    ctx.fillStyle = "#13241d"; ctx.beginPath(); ctx.arc(rx + 2.2 * z, ry - 1 * z, 0.7 * z, 0, 6.28); ctx.fill();
+
+    // signo de exclamación parpadeante a la derecha
+    ctx.fillStyle = Math.floor(tiempo * 3) % 2 ? "#ffd24a" : "#cbdf5a";
+    ctx.font = `bold ${11 * z}px 'Press Start 2P', monospace`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("!", tx + bw * 0.74, ty + bh * 0.46);
+
+    // etiqueta flotante sobre el cartel: inconfundible
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `${7 * z}px 'Press Start 2P', monospace`;
+    const etq = "CHARCA PANIC";
+    const ew = ctx.measureText(etq).width + 10 * z, eh = 13 * z;
+    const ex = bx - ew / 2, ey = ty - eh - 6 * z;
+    ctx.fillStyle = "#cbdf5a"; ctx.fillRect(ex, ey, ew, eh);
+    ctx.strokeStyle = "#2b1c12"; ctx.lineWidth = 1.5 * z; ctx.strokeRect(ex, ey, ew, eh);
+    ctx.fillStyle = "#2b1c12"; ctx.textAlign = "center";
+    ctx.fillText(etq, bx, ey + eh - 4 * z);
+  }
+
+  // ── cartelito del ranking de Charca Panic ────────────────────────────────
+  // Pequeño y discreto: un poste con una tablilla que solo dice "RANKING" en
+  // amarillo. Al acercarse y pulsarlo se abre el modal con la lista completa.
+  function dibujarLetreroRanking(tiempo) {
+    const z = camara.zoom;
+    const [bx, by] = celdaAPantalla(LETRERO_RANKING.col + 0.5, LETRERO_RANKING.fila + 1);
+    dibujarSombra(ctx, bx, by, 5, z);
+
+    // poste de madera
+    ctx.fillStyle = "#6b4a31"; ctx.fillRect(bx - 1.5 * z, by - 16 * z, 3 * z, 16 * z);
+
+    // tablilla pequeña
+    const bw = 34 * z, bh = 11 * z;
+    const tx = bx - bw / 2, ty = by - 26 * z;
+    ctx.fillStyle = "#3a2a18"; ctx.fillRect(tx, ty, bw, bh);
+    ctx.strokeStyle = "#6b4a31"; ctx.lineWidth = 1.5 * z; ctx.strokeRect(tx, ty, bw, bh);
+    ctx.fillStyle = "#ffd24a";
+    ctx.font = `${4 * z}px 'Press Start 2P', monospace`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("RANKING", bx, ty + bh / 2 + 0.5 * z);
+    ctx.textBaseline = "alphabetic";
+  }
+
+  // ── modal del ranking: lista de quienes terminaron el juego ───────────────
+  const elModalRanking = document.getElementById("modal-ranking");
+  function mostrarRanking() {
+    if (!elModalRanking) return;
+    const cont = document.getElementById("ranking-lista");
+    cont.innerHTML = "";
+    if (!rankingCharca.length) {
+      const v = document.createElement("div");
+      v.className = "rk-vacio"; v.textContent = "Aún nadie ha escapado. ¡Sé el primero!";
+      cont.appendChild(v);
+    } else {
+      const fr = spritesRankingCharca();
+      rankingCharca.forEach((e, i) => {
+        const fila = document.createElement("div");
+        fila.className = "rk-fila" + (i === 0 ? " top" : "");
+        // avatar en un canvas pixelado
+        const cv = document.createElement("canvas");
+        cv.className = "rk-av"; cv.width = 30; cv.height = 30;
+        const f = fr[i];
+        if (f) {
+          const cx = cv.getContext("2d"); cx.imageSmoothingEnabled = false;
+          const s = Math.min(30 / f.ancho, 30 / f.alto);
+          const w = f.ancho * s, h = f.alto * s;
+          cx.drawImage(f.canvas, (30 - w) / 2, 30 - h, w, h);
+        }
+        fila.innerHTML = `<span class="rk-pos">${i + 1}</span>`;
+        fila.appendChild(cv);
+        const nom = document.createElement("span");
+        nom.className = "rk-nombre"; nom.textContent = e.nombre;
+        const pts = document.createElement("span");
+        pts.className = "rk-pts"; pts.textContent = (e.puntos | 0) + " pts";
+        fila.appendChild(nom); fila.appendChild(pts);
+        cont.appendChild(fila);
+      });
+    }
+    elModalRanking.classList.add("activo");
+  }
+  if (elModalRanking) {
+    document.getElementById("btn-ranking-cerrar").addEventListener("click", () => {
+      elModalRanking.classList.remove("activo");
+    });
+  }
+
+  // ¿se ha pulsado el cartelito del ranking, estando cerca? → abre el modal
+  function intentarRanking(px, py) {
+    if (!elModalRanking || elModalRanking.classList.contains("activo")) return false;
+    const [col, fila] = pantallaACelda(px, py);
+    const cx = LETRERO_RANKING.col + 0.5;
+    if (Math.abs(col - cx) > 0.9 || fila < LETRERO_RANKING.fila - 1.4 || fila > LETRERO_RANKING.fila + 1.0) return false;
+    const dJug = Math.hypot(jugador.x - cx, jugador.y - (LETRERO_RANKING.fila + 0.5));
+    if (dJug > 4.2) return false;
+    mostrarRanking();
+    return true;
+  }
+
   // ── render ────────────────────────────────────────────────────────────
   function dibujar(tiempo) {
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -2329,6 +2565,16 @@
           dibujarSprite(ctx, spr.frames[spr.frames.length > 1 ? animFrame : 0], x, y, aw * tam, ah * tam, camara.zoom);
         },
       });
+    }
+    // cartel especial de Charca Panic, dentro del orden de profundidad
+    if (LETRERO_CHARCA.col + 1 >= colMin && LETRERO_CHARCA.col - 1 <= colMax &&
+        LETRERO_CHARCA.fila + 1 >= filaMin - 1 && LETRERO_CHARCA.fila <= filaMax + 2) {
+      dibujables.push({ orden: LETRERO_CHARCA.fila + 1, dibujar: () => dibujarLetreroCharca(tiempo) });
+    }
+    // cartel del ranking, al lado de la charca
+    if (LETRERO_RANKING.col + 1 >= colMin && LETRERO_RANKING.col - 1 <= colMax &&
+        LETRERO_RANKING.fila + 1 >= filaMin - 1 && LETRERO_RANKING.fila <= filaMax + 2) {
+      dibujables.push({ orden: LETRERO_RANKING.fila + 1, dibujar: () => dibujarLetreroRanking(tiempo) });
     }
     dibujables.push({
       orden: jugador.y + 0.5,

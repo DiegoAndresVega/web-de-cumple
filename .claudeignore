@@ -1,0 +1,14 @@
+# Imágenes
+*.png
+*.jpg
+*.jpeg
+*.JPG
+*.gif
+*.webp
+
+# Mac
+.DS_Store
+
+# Carpetas de assets
+images/
+fotosfinka/

@@ -185,7 +185,7 @@
     objetos.push({ id: "gallina_1", tipo: "gallina", col: 90, fila: 65 });
     objetos.push({ id: "gallina_2", tipo: "gallina", col: 93, fila: 65 });
     objetos.push({ id: "gallina_3", tipo: "gallina", col: 91, fila: 66 });
-    objetos.push({ id: "gallina_4", tipo: "gallina", col: 94, fila: 66 });
+    objetos.push({ id: "gallina_4", tipo: "gallina_negra", col: 94, fila: 66 });
 
     // corral de ovejas con puerta al norte
     anillaValla(objetos, "valla_o", 75, 69, 81, 74, [[78, 69]]);
@@ -259,7 +259,7 @@
       "ciruelo", "endrino", "pistacho", "nogal", "almendro", "castano", "espino"]],
     ["PLANTAS", ["arandano", "lavanda", "fresa", "flores", "retama", "zarza",
       "amapola", "tomillo", "romero", "euforbio"]],
-    ["ANIMALES", ["gallina", "oveja_negra", "liebre", "zorro", "gineta", "comadreja",
+    ["ANIMALES", ["gallina", "gallina_negra", "oveja_negra", "liebre", "zorro", "gineta", "comadreja",
       "gorrion", "urraca", "abubilla", "ciguena", "aguila", "perdiz",
       "lagartija", "lagarto", "culebra", "rana", "sapo", "sapo_corredor"]],
     ["INSECTOS", ["libelula", "oruga", "mariquita", "sanjuanero"]],

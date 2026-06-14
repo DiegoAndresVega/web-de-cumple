@@ -50,6 +50,9 @@
     // animales
     blanco: "#f7f3e8", crema: "#e3d8bd", cresta: "#e04848", pico: "#efa23b",
     negro: "#2b2724", negro_l: "#3d3833", gris: "#6b645c", rosa_oveja: "#e8b4ac",
+    // gallinas: rojizas y una negra
+    gal_roj: "#b56234", gal_roj_l: "#d98a52", gal_roj_d: "#8c4824",
+    gal_neg: "#2b2724", gal_neg_l: "#48413a", gal_neg_d: "#1c1916",
     // fauna silvestre
     pardo: "#8a6644", pardo_d: "#6b4e33", pardo_l: "#a98a60",
     pata_roja: "#d6604a", abub: "#d8a878", abub_d: "#b8885c",
@@ -584,17 +587,26 @@
   }
 
   // ── animales ───────────────────────────────────────────────────────────
-  function spriteGallina(frameIdx) {
+  // paletas de gallina: rojiza y negra completa
+  const GALLINA_PALS = {
+    rojiza: { cuerpo: "gal_roj", claro: "gal_roj_l", sombra: "gal_roj_d", pico: "pico", ojo: "negro", pata: "pico" },
+    negra:  { cuerpo: "gal_neg", claro: "gal_neg_l", sombra: "gal_neg_d", pico: "gris", ojo: "blanco", pata: "gris" },
+  };
+  function spriteGallina(frameIdx, variante) {
+    const p = GALLINA_PALS[variante] || GALLINA_PALS.rojiza;
     const g = crearGrid(16, 16);
-    circulo(g, 7, 9, 4.5, "blanco");
-    rect(g, 3, 8, 3, 3, "crema");
-    circulo(g, 11, 5, 2.5, "blanco");
-    punto(g, 11, 2, "cresta"); punto(g, 12, 2, "cresta");
-    rect(g, 13, 5, 2, 1, "pico");
-    punto(g, 11, 4, "negro");
-    punto(g, 7, 9, "crema"); punto(g, 8, 9, "crema"); punto(g, 6, 10, "crema");
-    if (frameIdx === 0) { rect(g, 5, 13, 1, 3, "pico"); rect(g, 9, 13, 1, 3, "pico"); }
-    else { rect(g, 6, 13, 1, 3, "pico"); rect(g, 8, 14, 1, 2, "pico"); }
+    circulo(g, 7, 9, 4.5, p.cuerpo);          // cuerpo
+    rect(g, 3, 8, 3, 3, p.sombra);            // grupa/cola en sombra
+    circulo(g, 11, 5, 2.5, p.cuerpo);         // cabeza
+    punto(g, 11, 2, "cresta"); punto(g, 12, 2, "cresta"); // cresta roja
+    punto(g, 10, 7, "cresta");                // barbilla
+    rect(g, 13, 5, 2, 1, p.pico);             // pico
+    punto(g, 11, 4, p.ojo);                   // ojo
+    // plumaje claro moteado en el cuerpo
+    punto(g, 7, 9, p.claro); punto(g, 8, 9, p.claro); punto(g, 6, 10, p.claro);
+    punto(g, 9, 8, p.claro);
+    if (frameIdx === 0) { rect(g, 5, 13, 1, 3, p.pata); rect(g, 9, 13, 1, 3, p.pata); }
+    else { rect(g, 6, 13, 1, 3, p.pata); rect(g, 8, 14, 1, 2, p.pata); }
     return frame(g);
   }
   function spriteOveja(frameIdx) {
@@ -1154,7 +1166,8 @@
     caseta: { frames: [spriteCaseta()], sombra: 0 },
     gallinero: { frames: [spriteGallinero()], sombra: 0 },
     letrina: { frames: [spriteLetrina()], sombra: 0 },
-    gallina: { frames: [spriteGallina(0), spriteGallina(1)], sombra: 5 },
+    gallina: { frames: [spriteGallina(0, "rojiza"), spriteGallina(1, "rojiza")], sombra: 5 },
+    gallina_negra: { frames: [spriteGallina(0, "negra"), spriteGallina(1, "negra")], sombra: 5 },
     oveja_negra: { frames: [spriteOveja(0), spriteOveja(1)], sombra: 7 },
 
     // fauna silvestre: frames[0] = posado/quieto; las aves llevan además

@@ -208,6 +208,55 @@
     }
     #modal-aviso button:hover { background: #e0f070; }
 
+    /* ── modal de la charca (Charca Panic) ── */
+    #modal-charca {
+      position: fixed; inset: 0; background: rgba(20, 14, 8, 0.72);
+      display: none; align-items: center; justify-content: center; z-index: 65;
+    }
+    #modal-charca.activo { display: flex; }
+    #modal-charca .caja {
+      background: var(--panel); border: 4px solid var(--panel-borde);
+      box-shadow: 6px 6px 0 rgba(0,0,0,.45); padding: 26px 30px; text-align: center;
+      max-width: 340px;
+    }
+    #modal-charca h2 { margin: 0 0 8px; font-family: "Press Start 2P", monospace; font-size: 13px; color: var(--acento); }
+    #modal-charca p { margin: 0 0 18px; font-size: 12px; }
+    #modal-charca button {
+      background: var(--acento); color: #2b1c12; border: 3px solid var(--panel-borde);
+      font-family: "Press Start 2P", monospace; font-size: 10px; padding: 10px 14px; cursor: pointer; margin: 0 4px;
+    }
+    #modal-charca button:hover { background: #e0f070; }
+    #modal-charca button.ghost { background: #6b4a31; color: var(--panel-texto); }
+
+    /* ── modal del ranking ── */
+    #modal-ranking {
+      position: fixed; inset: 0; background: rgba(20, 14, 8, 0.72);
+      display: none; align-items: center; justify-content: center; z-index: 65;
+    }
+    #modal-ranking.activo { display: flex; }
+    #modal-ranking .caja {
+      background: var(--panel); border: 4px solid var(--panel-borde);
+      box-shadow: 6px 6px 0 rgba(0,0,0,.45); padding: 22px 26px; text-align: center; max-width: 360px;
+    }
+    #modal-ranking h2 { margin: 0 0 6px; font-family: "Press Start 2P", monospace; font-size: 12px; color: var(--acento); }
+    #modal-ranking p { margin: 0 0 14px; font-size: 11px; }
+    #ranking-lista { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+    #ranking-lista .rk-fila {
+      display: flex; align-items: center; gap: 10px; padding: 5px 6px;
+      background: rgba(0,0,0,0.12); border: 2px solid var(--panel-borde);
+    }
+    #ranking-lista .rk-fila.top { background: rgba(203,223,90,0.15); }
+    #ranking-lista .rk-pos { font-family: "Press Start 2P", monospace; font-size: 11px; color: var(--acento); width: 20px; text-align: right; }
+    #ranking-lista .rk-av { width: 30px; height: 30px; image-rendering: pixelated; }
+    #ranking-lista .rk-nombre { flex: 1; text-align: left; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #ranking-lista .rk-pts { font-family: "Press Start 2P", monospace; font-size: 10px; color: #cbdf5a; }
+    #ranking-lista .rk-vacio { font-size: 11px; padding: 12px; opacity: 0.8; }
+    #modal-ranking button {
+      background: var(--acento); color: #2b1c12; border: 3px solid var(--panel-borde);
+      font-family: "Press Start 2P", monospace; font-size: 10px; padding: 10px 14px; cursor: pointer;
+    }
+    #modal-ranking button:hover { background: #e0f070; }
+
     /* ── joystick táctil ── */
     #joystick {
       position: fixed; left: 18px; bottom: 78px; width: 112px; height: 112px;
@@ -302,6 +351,24 @@
     </div>
   </div>
 
+  <div id="modal-charca">
+    <div class="caja">
+      <h2>CHARCA PANIC</h2>
+      <p>Esta es una charca peligrosa, llena de escarabajos buceadores. ¿Quieres ayudar al renacuajo a escapar?</p>
+      <button class="ghost" id="btn-charca-no">AHORA NO</button>
+      <button id="btn-charca-si">¡JUGAR! →</button>
+    </div>
+  </div>
+
+  <div id="modal-ranking">
+    <div class="caja">
+      <h2>RANKING</h2>
+      <p>Quienes lograron escapar de la charca:</p>
+      <div id="ranking-lista"></div>
+      <button id="btn-ranking-cerrar">CERRAR</button>
+    </div>
+  </div>
+
   <div id="joystick"><div id="joystick-knob"></div></div>
 
   <div class="panel" id="editor-panel">
@@ -335,6 +402,7 @@
   </script>
   <script src="finkafarm-datos.js"></script>
   <script src="finkafarm-sprites.js"></script>
+  <script src="charca-panic.js"></script>
   <script src="finkafarm-juego.js"></script>
 </body>
 </html>
