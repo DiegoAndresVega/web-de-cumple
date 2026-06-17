@@ -146,6 +146,7 @@
     };
     const DORMIR = { "tienda":"Tienda","furgo":"Llevo furgo","furgo-ajena":"En la furgo de alguien","dia":"Solo dia","necesito":"Necesita lugar","otro":"Otro" };
     const LLEGADA = { "antes-comer":"Antes de comer","despues-comer":"Después de comer" };
+    const APORTA = { "cocino":"Cocino","taller":"Taller","juego":"Juego","dj":"DJ","instrumento":"Instrumento","sonido":"Sonido","otro":"Otro" };
 
     function fmt(ts) {
       if (!ts) return "-";
@@ -386,6 +387,34 @@
                         ),
                       )
                     )
+            )
+          )
+        ),
+
+        // ── Tabla resumen "Aporta" por categoría ──
+        h("div",{style:{marginTop:48}},
+          h("div",{className:"grid-title",style:{marginBottom:0}},"Aporta · por categoría"),
+          h("div",{className:"wrap"},
+            h("table",{style:{minWidth:"auto",width:"100%"}},
+              h("thead",null,h("tr",null,
+                h("th",{style:{width:160}},"Categoría"),
+                h("th",{style:{width:80}},"Total"),
+                h("th",null,"Nombres"),
+              )),
+              h("tbody",null,
+                Object.entries(APORTA).map(([k,lbl])=>{
+                  const nombres = rows.filter(r=>(r.aportar||[]).includes(k)).map(r=>r.nombre||"—");
+                  return h("tr",{key:k},
+                    h("td",{className:"bold"},lbl),
+                    h("td",{className:"stat-num",style:{fontSize:18,color:nombres.length?"#cbdf5a":"#555"}},nombres.length),
+                    h("td",null,
+                      nombres.length
+                        ? nombres.map((n,i)=>h("span",{key:k+"_"+i,className:"pill hi"},n))
+                        : h("span",{className:"dim"},"—")
+                    ),
+                  );
+                })
+              )
             )
           )
         ),
