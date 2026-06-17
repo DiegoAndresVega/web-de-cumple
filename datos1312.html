@@ -146,7 +146,7 @@
     };
     const DORMIR = { "tienda":"Tienda","furgo":"Llevo furgo","furgo-ajena":"En la furgo de alguien","dia":"Solo dia","necesito":"Necesita lugar","otro":"Otro" };
     const LLEGADA = { "antes-comer":"Antes de comer","despues-comer":"Después de comer" };
-    const APORTA = { "cocino":"Cocino","taller":"Taller","juego":"Juego","dj":"DJ","instrumento":"Instrumento","sonido":"Sonido","otro":"Otro" };
+    const APORTA = { "cocino":"Cocino","limpieza":"Limpieza","taller":"Taller","juego":"Juego","dj":"DJ","instrumento":"Instrumento","sonido":"Sonido","otro":"Otro" };
 
     function fmt(ts) {
       if (!ts) return "-";
@@ -256,7 +256,7 @@
           h("div",{className:"field"},
             h("label",null,"Aporta"),
             h("div",{className:"chips"},
-              ["cocino","taller","juego","dj","instrumento","sonido","otro"].map(a=>
+              ["cocino","limpieza","taller","juego","dj","instrumento","sonido","otro"].map(a=>
                 h("span",{key:a,className:"chip"+((f.aportar||[]).includes(a)?" on":""),onClick:()=>toggleArr("aportar",a)},a)
               )
             )
