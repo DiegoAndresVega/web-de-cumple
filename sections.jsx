@@ -400,6 +400,7 @@ function Programa() {
       blocks: [
         ["-", "Llegadas + montar"],
         ["-", "Espectaculos aereos: Telas - Trapecio"],
+        ["-", "Ruina"],
         ["-", "Cena compartida (trae algo para compartir)"],
         ["-", "Fogata" ],
         ["-", "JAM" ],
@@ -413,6 +414,7 @@ function Programa() {
         ["-", "Vermú cuñado · Taller de trapecio "],
         ["-", "Paella para todes  (invitamos)"],
         ["-", "Siesta · piscina · relax"],
+        ["-", "Taller de boxeo y muay thai"],
         ["-", "CONQUISTADOR!!"],
         ["-", "actividades"],
         ["-", "Cena picoteo + fiesta "],
