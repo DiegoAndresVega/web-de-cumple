@@ -20,7 +20,16 @@
 
     /* Stats */
     .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px; }
-    .stat { background: #111; border: 2px solid #cbdf5a; padding: 12px 18px; min-width: 100px; }
+    .stat {
+      background: #111; border: 2px solid #cbdf5a; padding: 12px 18px; min-width: 100px;
+      font-family: "Space Mono", monospace; text-align: left; cursor: pointer;
+      transition: background .12s, transform .05s;
+    }
+    .stat:hover { background: #1a1a1a; }
+    .stat:active { transform: translateY(1px); }
+    .stat.active { background: #cbdf5a; }
+    .stat.active .stat-num { color: #000; }
+    .stat.active .stat-lbl { color: #000; }
     .stat-num { font-family: "Archivo Black", sans-serif; font-size: 32px; color: #cbdf5a; line-height: 1; }
     .stat-lbl { font-size: 10px; color: #f4f4f0; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 4px; }
 
@@ -279,6 +288,7 @@
       const [showPw, setShowPw]   = useState(false);
       const [editing, setEditing] = useState(null);
       const [confirmDel, setConfirmDel] = useState(null);
+      const [filter, setFilter]   = useState(null);
 
       useEffect(() => {
         db().ref("videos").on("value", snap => {
@@ -310,14 +320,19 @@
         setConfirmDel(null);
       };
 
-      const vie      = rows.filter(r=>r.dias?.vie).length;
-      const sab      = rows.filter(r=>r.dias?.sab).length;
-      const dom      = rows.filter(r=>r.dias?.dom).length;
-      const furgos    = rows.filter(r=>r.transporte==="furgo"||r.dormir==="furgo").length;
-      const coches    = rows.filter(r=>["coche","coche-propio","coche-lleno"].includes(r.transporte)).length;
-      const sinViaje  = rows.filter(r=>r.transporte==="necesito").length;
-      const sinDormir = rows.filter(r=>r.dormir==="necesito").length;
-      const dieta     = rows.filter(r=>r.dieta?.length>0||r.alergias).length;
+      const STAT_DEFS = [
+        {key:"total",     lbl:"Total",          pred:()=>true},
+        {key:"vie",       lbl:"Vie 19",         pred:r=>!!r.dias?.vie},
+        {key:"sab",       lbl:"Sab 20",         pred:r=>!!r.dias?.sab},
+        {key:"dom",       lbl:"Dom 21",         pred:r=>!!r.dias?.dom},
+        {key:"furgos",    lbl:"Furgos",         pred:r=>r.transporte==="furgo"||r.dormir==="furgo"},
+        {key:"coches",    lbl:"Coches",         pred:r=>["coche","coche-propio","coche-lleno"].includes(r.transporte)},
+        {key:"sinViaje",  lbl:"Sin viaje",      pred:r=>r.transporte==="necesito"},
+        {key:"sinDormir", lbl:"Sin dormir",     pred:r=>r.dormir==="necesito"},
+        {key:"dieta",     lbl:"Dieta especial", pred:r=>r.dieta?.length>0||r.alergias},
+      ];
+      const activeDef = filter && filter!=="total" ? STAT_DEFS.find(s=>s.key===filter) : null;
+      const shownRows = activeDef ? rows.filter(activeDef.pred) : rows;
 
       const cols = ["Fecha","Nombre","Contacto","Dias","Llegada","Transporte","Duerme","Dieta / Alergias","Aporta","Notas",...(canEdit?[""]:[])] ;
 
@@ -336,17 +351,27 @@
         ),
 
         h("div",{className:"stats"},
-          [[rows.length,"Total"],[vie,"Vie 19"],[sab,"Sab 20"],[dom,"Dom 21"],[furgos,"Furgos"],[coches,"Coches"],[sinViaje,"Sin viaje"],[sinDormir,"Sin dormir"],[dieta,"Dieta especial"]].map(([n,lbl])=>
-            h("div",{className:"stat",key:lbl},
+          STAT_DEFS.map(s=>{
+            const n = rows.filter(s.pred).length;
+            const isActive = (filter||"total")===s.key;
+            return h("button",{
+              className:"stat"+(isActive?" active":""),
+              key:s.key,
+              onClick:()=>setFilter(s.key==="total"?null:s.key),
+            },
               h("div",{className:"stat-num"},loading?"—":n),
-              h("div",{className:"stat-lbl"},lbl)
-            )
-          )
+              h("div",{className:"stat-lbl"},s.lbl)
+            );
+          })
         ),
 
-        h("div",{className:"grid-title"},
-          `Respuestas individuales${!loading?" · "+rows.length:""}`
-          + (canEdit?" · MODO EDICION":"")
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap",borderBottom:"2px solid #cbdf5a",paddingBottom:8}},
+          h("div",{className:"grid-title",style:{border:"none",padding:0,margin:0}},
+            `Respuestas individuales${!loading?" · "+shownRows.length:""}`
+            + (activeDef?" · "+activeDef.lbl.toUpperCase():"")
+            + (canEdit?" · MODO EDICION":"")
+          ),
+          activeDef && h("button",{className:"btn ghost sm",onClick:()=>setFilter(null)},"✕ VER TODO"),
         ),
         h("div",{className:"wrap"},
           h("table",null,
@@ -354,9 +379,9 @@
             h("tbody",null,
               loading
                 ? h("tr",{className:"loading-row"},h("td",{colSpan:cols.length},"Conectando con Firebase..."))
-                : rows.length===0
-                  ? h("tr",{className:"empty-row"},h("td",{colSpan:cols.length},"Sin confirmaciones aun. Las respuestas apareceran aqui en tiempo real."))
-                  : rows.map(r=>
+                : shownRows.length===0
+                  ? h("tr",{className:"empty-row"},h("td",{colSpan:cols.length},activeDef?"Sin resultados para este filtro.":"Sin confirmaciones aun. Las respuestas apareceran aqui en tiempo real."))
+                  : shownRows.map(r=>
                       h("tr",{key:r._key},
                         h("td",{className:"dim",style:{whiteSpace:"nowrap",fontSize:11}},fmt(r.ts)),
                         h("td",{className:"bold"},r.nombre||h("span",{className:"dim"},"—")),
